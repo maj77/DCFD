@@ -30,6 +30,6 @@ always_ff @(posedge clk) begin
     end
 end
 
-assign data_o = data_d[DELAY];
+assign data_o = data_d[DELAY-1];
 
 endmodule

@@ -21,15 +21,18 @@ module cfd #( IN_WIDTH = 32,
               output                pulse_out
             );
 
-localparam SCALE_FACTOR = 12'b1100_1100_1101;
-localparam SCALED_WIDTH = $bits(SCALE_FACTOR)+IN_WIDTH;
+localparam SCALE_FACTOR       = 12'b1100_1100_1101;
+localparam SCALE_FACTOR_WIDTH = $bits(SCALE_FACTOR);
+localparam SCALED_WIDTH       = SCALE_FACTOR_WIDTH + IN_WIDTH;
 
 logic [    IN_WIDTH-1:0] input_reg         ;
 logic [    IN_WIDTH-1:0] sample_d          ;
+logic [SCALED_WIDTH-1:0] sample_d_reg      ;
 logic [SCALED_WIDTH-1:0] scaled_sample     ;
-logic [  SCALED_WIDTH:0] sub_result        ;
-logic [  SCALED_WIDTH:0] result_sample[1:0];
-logic                    pulse             ;
+
+logic signed [  SCALED_WIDTH:0] sub_result        ;
+logic signed [  SCALED_WIDTH:0] result_sample[1:0];
+logic                           pulse             ;
 
 always_ff @(posedge clk) begin
   if(rst_p)
@@ -39,7 +42,7 @@ always_ff @(posedge clk) begin
 end
 
 pipe_dly #( .DATA_WIDTH (IN_WIDTH  ),
-            .DELAY      (PIPE_DLY+1) // +1 to allign with block diagram
+            .DELAY      (PIPE_DLY  )
          )i_cfd_pipe_dly(
             .clk   (clk      ),
             .rst_p (rst_p    ),
@@ -57,14 +60,18 @@ scaler #( .SCALE_FACTOR(SCALE_FACTOR),
           .data_o(scaled_sample)
        );
 
-assign sub_result = sample_d - scaled_sample;
+always_ff @(posedge clk) begin
+  sample_d_reg <= sample_d << SCALE_FACTOR_WIDTH; // shift from Q(0.32.0) to Q(0.32.12)
+end
+
+assign sub_result = sample_d_reg - scaled_sample;
 
 always_ff @(posedge clk) begin
   if(rst_p)
     result_sample <= '{default:0};
   else
     result_sample[0] <= sub_result;
-    result_sample[1] <= result_sample[1];
+    result_sample[1] <= result_sample[0];
 end
 
 always_comb begin
