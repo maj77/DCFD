@@ -3,8 +3,9 @@
 // Engineer: Marcin Maj
 // 
 // Create Date: 29.07.2023 09:33:56
+// Design Name: CFD
 // Module Name: pipe_dly
-// Additional Comments: module implements regitered delay line
+// Description: module implements regitered delay line
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -12,10 +13,10 @@
 module pipe_dly #( DATA_WIDTH = 32,
                    DELAY      = 1
                )(
-                  input                   clk   ,
-                  input                   rst_p ,
-                  input  [DATA_WIDTH-1:0] data_i,
-                  output [DATA_WIDTH-1:0] data_o
+                  input  logic                  clk   ,
+                  input  logic                  rst_p ,
+                  input  logic [DATA_WIDTH-1:0] data_i,
+                  output logic [DATA_WIDTH-1:0] data_o
                );
                           
 logic [DATA_WIDTH-1:0] data_d [DELAY-1:0]; 

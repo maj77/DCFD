@@ -15,24 +15,29 @@
 
 module cfd #( IN_WIDTH = 32,
               PIPE_DLY = 10
-           )( input                 clk,
-              input                 rst_p,
-              input  [IN_WIDTH-1:0] sample_in,
-              output                pulse_out
+           )( input  logic                clk      ,
+              input  logic                clk_ser  ,
+              input  logic                rst_p    ,
+              input  logic [IN_WIDTH-1:0] sample_in,
+              output logic                pulse_out
             );
 
 localparam SCALE_FACTOR       = 12'b1100_1100_1101;
 localparam SCALE_FACTOR_WIDTH = $bits(SCALE_FACTOR);
 localparam SCALED_WIDTH       = SCALE_FACTOR_WIDTH + IN_WIDTH;
+localparam ZERO_CROSS_WIDTH   = SCALED_WIDTH + 1;
 
 logic [    IN_WIDTH-1:0] input_reg         ;
 logic [    IN_WIDTH-1:0] sample_d          ;
 logic [SCALED_WIDTH-1:0] sample_d_reg      ;
 logic [SCALED_WIDTH-1:0] scaled_sample     ;
 
-logic signed [  SCALED_WIDTH:0] sub_result        ;
-logic signed [  SCALED_WIDTH:0] result_sample[1:0];
-logic                           pulse             ;
+logic signed [ZERO_CROSS_WIDTH-1:0] sub_result        ;
+logic signed [ZERO_CROSS_WIDTH-1:0] result_sample[1:0];
+logic                               pulse             ;
+
+logic signed [ZERO_CROSS_WIDTH-1:0] interp_samples [1:0];
+logic signed [ZERO_CROSS_WIDTH-1:0] interp_samples_out  ;
 
 always_ff @(posedge clk) begin
   if(rst_p)
@@ -74,12 +79,33 @@ always_ff @(posedge clk) begin
     result_sample[1] <= result_sample[0];
 end
 
-always_comb begin
-  if(result_sample[0] > 0 && result_sample[1] < 0)
-    pulse = 1'b1;
-  else
-    pulse = 1'b0;
-end
+// interpolator which operates on base clock
+interpolator #( .IN_WIDTH(ZERO_CROSS_WIDTH)
+             )( 
+                .clk        (clk             ),
+                .rst_p      (rst_p           ),
+                .sample_in_0(result_sample[1]),
+                .sample_in_1(result_sample[0]),
+                .samples_out(interp_samples  )
+             );
 
-assign pulse_out = pulse;
+
+serializer #( .DATA_WIDTH(ZERO_CROSS_WIDTH)
+           )(
+              .clk_ser (clk_ser           ),
+              .clk_par ('b0               ),
+              .rst_p   (rst_p             ),
+              .data_in (interp_samples    ),
+              .data_out(interp_samples_out)
+            );
+              
+              
+//always_comb begin
+//  if(result_sample[0] > 0 && result_sample[1] < 0)
+//    pulse = 1'b1;
+//  else
+//    pulse = 1'b0;
+//end
+
+//assign pulse_out = pulse;
 endmodule
