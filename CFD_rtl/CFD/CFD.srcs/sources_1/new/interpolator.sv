@@ -13,11 +13,11 @@ module interpolator #(
         IN_WIDTH = 45,
         OUT_WIDTH = 3*IN_WIDTH
     )(
-        input logic                       clk              ,
-        input logic                       rst_p            ,
-        input logic signed [IN_WIDTH-1:0] sample_in_0      ,     // sample n-1, Q(1.32.12)
-        input logic signed [IN_WIDTH-1:0] sample_in_1      ,     // sample n,   Q(1.32.12)
-        input logic signed [IN_WIDTH-1:0] samples_out [1:0]
+        input  logic                       clk              ,
+        input  logic                       rst_p            ,
+        input  logic signed [IN_WIDTH-1:0] sample_in_0      ,     // sample n-1, Q(1.32.12)
+        input  logic signed [IN_WIDTH-1:0] sample_in_1      ,     // sample n,   Q(1.32.12)
+        output logic signed [IN_WIDTH-1:0] samples_out [2:0]
     );
     
 logic signed [  IN_WIDTH:0] samp_sub_res; // Q(1.33.12)
@@ -25,7 +25,7 @@ logic signed [  IN_WIDTH:0] samp_add_res; // Q(1.33.12)
 logic signed [IN_WIDTH-1:0] interp_sample; // Q(1.32.12)
 
 // [0] oldest sample, [1] interp sample, [2] newest sample
-logic signed [IN_WIDTH-1:0] s_out_r [1:0]; 
+logic signed [IN_WIDTH-1:0] s_out_r [2:0]; 
 
 always_comb begin
   samp_sub_res = sample_in_1 - sample_in_0; 
