@@ -58,4 +58,4 @@ time2 = 1:1:interp_len(2);
 
 %plot(time_extd(1:865), zero_cross_val(1:865), time_extd(1:865), lerp);
 %legend('zero cross pulse', 'interpolation pulse');
-plotyy(time2, interpolated,time_extd, zero_cross_val);
+ploty(time2, interpolated,time_extd, zero_cross_val);

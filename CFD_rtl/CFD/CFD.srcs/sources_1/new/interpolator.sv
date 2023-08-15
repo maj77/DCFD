@@ -5,7 +5,8 @@
 // Create Date: 04.08.2023 18:27:21
 // Design Name: CFD
 // Module Name: interpolator
-// Description: module performs linear interpolation
+// Description: module performs linear interpolation, calculates mean value between
+//              two samples.
 //////////////////////////////////////////////////////////////////////////////////
 
 
