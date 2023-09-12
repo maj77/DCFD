@@ -35,6 +35,8 @@ legend('original', 'original delayed', 'zero cross val', 'zero cross pulse')
 %% create fxp represantation of input impulse
 val_fxp = fi(val, 0, 32, 0);
 val_fxp_hex = hex(val_fxp);
+zc_val_fxp = fi(zero_cross_val, 1, 25, 12);
+zc_val_fxp_hex = hex(zc_val_fxp);
 
 %% INTERPOLATION
 zc_len = size(zero_cross_val);
@@ -58,4 +60,4 @@ time2 = 1:1:interp_len(2);
 
 %plot(time_extd(1:865), zero_cross_val(1:865), time_extd(1:865), lerp);
 %legend('zero cross pulse', 'interpolation pulse');
-ploty(time2, interpolated,time_extd, zero_cross_val);
+plot(time2, interpolated,time_extd, zero_cross_val);
