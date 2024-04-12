@@ -2,27 +2,26 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer: Marcin Maj
 // 
-// Create Date: 29.07.2023 09:33:56
+// Create Date: 22.03.2024 13:03:32
 // Design Name: CFD
 // Module Name: pipe_dly
-// Description: module implements regitered delay line
+// Description: module implements behavioral regitered delay line
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module pipe_dly #( DATA_WIDTH = 32,
-                   DELAY      = 1
-               )(
-                  input  logic                  clk   ,
-                  input  logic                  rst_p ,
-                  input  logic                  vld_in,
-                  input  logic [DATA_WIDTH-1:0] data_i,
-                  output logic [DATA_WIDTH-1:0] data_o,
-                  output logic                  vld_o
-               );
-                          
-logic [DATA_WIDTH-1:0] data_d [DELAY-1:0]; 
-logic                  vld    [DELAY-1:0];
+module pipe_dly_behav #( DELAY = 1
+    )(
+      input  logic clk   ,
+      input  logic rst_p ,
+      input  logic vld_in,
+      input  real  data_i,
+      output real  data_o,
+      output logic vld_o
+    );
+    
+real  data_d [DELAY-1:0]; 
+logic vld    [DELAY-1:0];
 
 always_ff @(posedge clk) begin
     if(rst_p) begin

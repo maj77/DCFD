@@ -22,7 +22,7 @@
 
 module scaler_tb();
 
-localparam INPUT_WIDTH  = 32;
+localparam INPUT_WIDTH  = 12;
 localparam SCALE_FACTOR = 12'b1100_1100_1101; // exact 0.8
 localparam SCALE_WIDTH  = $bits(SCALE_FACTOR);
 localparam OUTPUT_WIDTH = INPUT_WIDTH + SCALE_WIDTH;
@@ -44,7 +44,7 @@ real result_check_f;
 real result_f;
 real temp;
 
-scaler #(.INPUT_WIDTH (INPUT_WIDTH ),
+scaler #(.IN_WIDTH    (INPUT_WIDTH ),
          .SCALE_WIDTH (SCALE_WIDTH ),
          .OUTPUT_WIDTH(OUTPUT_WIDTH),
          .SCALE_FACTOR(SCALE_FACTOR)
@@ -68,11 +68,11 @@ initial begin
 end
 
 always @(posedge clk) begin
-  sample_in <= 32'd51253;
+  sample_in <= 32'd10;
 end
 
 always @(posedge clk) begin
-  test_val_f <= 51253;
+  test_val_f <= 10;
   scale_factor_f <= 0.8;
   result_check_f <= test_val_f * scale_factor_f;
   result_f <= real'(sample_out)/(2**SCALE_WIDTH);

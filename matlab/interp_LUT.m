@@ -2,7 +2,7 @@
 %  script creates 16bit values of given expression: 1/(a1+a2)
 %  a1 and a2 are concatenated and used as memory adress.
 %  For now format Q(0.3.3) is used for a1 and a2 which corresponds
-%  to input values in range [0.125 : 8]
+%  to input values in range [0 : 7.875]
 
 %% clear workspace
 clc; clear; close all;
@@ -15,8 +15,8 @@ a1 = 2^(-nf):2^(-nf):2*range;
 a2 = a1';
 
 %% LUT fxp unsigned
-a1_fxp = fi(a1, 0, 6, 3); % if I want unsigned values: fi(abs(data), 0, total_bits, fract_bits)
-a2_fxp = a1_fxp'; % transposing to later get every combination of [a1,a2] concat
+a1_fxp = fi(a1, 0, 6, 3);   % if I want unsigned values: fi(abs(data), 0, total_bits, fract_bits)
+a2_fxp = a1_fxp';           % transposing to later get every combination of [a1,a2] concat
 
 a1_fxp_hex = hex(a1_fxp');
 a2_fxp_hex = hex(a2_fxp);

@@ -1,16 +1,17 @@
 %% CFD calculations
 clc; clear; close all;
 
-amplitude = 200;
-delay_samples = 65;
+amplitude = 500;
+delay_samples = 80;
+scale_factor = 0.8;
 x = -4:0.01:4;
 
 %val = [0 0 1 2 4 6 8 7 6 2 1 0 0];
-val = gaussian_pulse(amplitude,0.3,x);
+[val, val_fxp] = gaussian_pulse(amplitude,0.3,x, 12, 6);
 tmp = zeros(1, delay_samples);
 val_delayed = [tmp, val];
 val_extd = [val, tmp];
-val_scaled = [val*0.8, tmp];
+val_scaled = [val*scale_factor, tmp];
 zero_cross_val =  val_delayed - val_scaled;
 
 val_size = size(val_extd);

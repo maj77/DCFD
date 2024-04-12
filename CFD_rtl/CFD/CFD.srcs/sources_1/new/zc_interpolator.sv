@@ -110,12 +110,11 @@ LUT #(
   .data_o(lut_data)
 );
 
-
 //
 // MULT_2 PATH
 //
 always_ff @(posedge clk) begin
-  mult_2_result <= lut_data*mult_1_scaled;
+  mult_2_result <= lut_data*mult_1_scaled; // on block diagram this flip flop is after rounding
 end
 
 // sat 5 MSB's
@@ -134,7 +133,7 @@ always_ff @(posedge clk) begin
   end else begin
     zero_cross_pulse <= 1'b0;
   end
-  zero_cross_pulse_d <= zero_cross_pulse;
+  zero_cross_pulse_d <= zero_cross_pulse; // allign pulse with result
 end
 
 assign result_vld = zero_cross_pulse_d;

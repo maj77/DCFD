@@ -42,13 +42,13 @@ initial begin
 end
 
 initial
-  clk <= 1'b0;
+  clk = 1'b0;
 always
-  #CLK_PERIOD_NS clk <= ~clk;
+  #CLK_PERIOD_NS clk = ~clk;
   
 initial begin
-  rst_p <= 1'b1;
-  #20 rst_p <= 1'b0;
+  rst_p = 1'b1;
+  #20 rst_p = 1'b0;
 end
 
 initial begin

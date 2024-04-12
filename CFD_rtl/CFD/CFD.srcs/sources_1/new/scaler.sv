@@ -22,18 +22,21 @@ module scaler #( SCALE_FACTOR = 12'b1100_1100_1101    , // default scaling by 0.
                  output logic [OUTPUT_WIDTH-1:0] data_o
               );
 
-logic [ SCALE_WIDTH-1:0] sf;
+logic [SCALE_WIDTH-1:0] sf;
 logic [OUTPUT_WIDTH-1:0] scaled_sample;
+logic [IN_WIDTH-1:0] sample;
 
-assign sf = SCALE_FACTOR; //Q(0.0.12)
+assign sf = SCALE_FACTOR;
+//assign sample = {data_i, {SCALE_WIDTH{1'b0}}}; 
+assign sample = data_i;
 
 always_ff @(posedge clk) begin
   if(rst_p)
     scaled_sample <= 0;
   else
-    scaled_sample <= data_i * sf;  
+    scaled_sample <= sample * sf;  
 end
 
-assign data_o = scaled_sample; //Q(0.32.12)
+assign data_o = scaled_sample; //Q(0.12.12)
 
 endmodule
