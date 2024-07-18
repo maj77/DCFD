@@ -11,18 +11,25 @@
 
 module zc_interpolator #(
   ADC_PERIOD_NS = 100, // 100ns clock period
+  RAW_IN_WIDTH  = 12,
   IN_WIDTH      = 25,
   IN_FRACT      = 12,
   OUT_WIDTH     = 16,
   OUT_FRACT     = 8
 )(
+  // data ports
   input  logic                        clk,
   input  logic                        rst_p,
   input  logic signed [ IN_WIDTH-1:0] sample_in_0, // a1 on block diagram
   input  logic signed [ IN_WIDTH-1:0] sample_in_1, // a2 on block diagram
   output logic        [OUT_WIDTH-1:0] result,
-  output logic                        result_vld
-);
+  output logic                        result_vld,
+  //  verification ports
+  input  logic        [RAW_IN_WIDTH-1:0] passthrough_in,
+  output logic        [RAW_IN_WIDTH-1:0] passthrough_out,
+  input  logic                           th_passthrough_in,
+  output logic                           th_passthrough_out
+);                                  
 
 localparam PERIOD_WIDTH    = $clog2(ADC_PERIOD_NS);
 localparam ABS_IN_WIDTH    = IN_WIDTH-1;
@@ -64,20 +71,35 @@ logic [         OUT_WIDTH:0] result_rnd;    // Q(0.9.8), additional 1 MSB for ha
 logic zero_cross_pulse;
 logic zero_cross_pulse_d;
 
+struct {
+    logic [RAW_IN_WIDTH-1:0] input_reg;
+    logic [RAW_IN_WIDTH-1:0] output_reg;
+} data_passthrough;
 
+struct {
+    logic input_reg=0;
+    logic output_reg=0;
+} th_passthrough;
 //
 // initial ABS calc
 //
 assign samp_0_abs = sample_in_0 < 0 ? ~sample_in_0 + 1'b1 : sample_in_0;  // expected 1MSB truncation
 assign samp_1_abs = sample_in_1 < 0 ? ~sample_in_1 + 1'b1 : sample_in_1; 
 
-
 //
 // MULT_1 PATH
 //
 assign T_adc = ADC_PERIOD_NS;
 always_ff @(posedge clk) begin
-  mult_1_result <= T_adc * samp_0_abs;
+  if (rst_p) begin
+    mult_1_result              <= '{default:0};
+    data_passthrough.input_reg <= '{default:0};
+    th_passthrough.input_reg   <= '{default:0};
+  end else begin
+    mult_1_result              <= T_adc * samp_0_abs;
+    data_passthrough.input_reg <= passthrough_in;
+    th_passthrough.input_reg   <= th_passthrough_in;
+  end
 end
 
 // sat 11 bits
@@ -85,7 +107,6 @@ assign mult_1_sat = |mult_1_result[MULT_1_WIDTH-1:MULT_1_SAT_WIDTH] ? '1 : mult_
 
 // truncate 4 LSB's
 assign mult_1_scaled = mult_1_sat[MULT_1_SAT_WIDTH-1:MULT_1_SAT_WIDTH-LUT_DATA_WIDTH]; // Q(0.8.8) 
-
 
 //
 // LUT PATH
@@ -114,8 +135,19 @@ LUT #(
 // MULT_2 PATH
 //
 always_ff @(posedge clk) begin
-  mult_2_result <= lut_data*mult_1_scaled; // on block diagram this flip flop is after rounding
+  if (rst_p) begin
+    mult_2_result               <=  '{default:0};
+    data_passthrough.output_reg <=  '{default:0};
+    th_passthrough.output_reg   <=  '{default:0};
+  end else begin
+    mult_2_result               <= lut_data*mult_1_scaled; // on block diagram this flip flop is after rounding
+    data_passthrough.output_reg <= data_passthrough.input_reg;
+    th_passthrough.output_reg   <= th_passthrough.input_reg;
+  end
 end
+
+assign passthrough_out    = data_passthrough.output_reg;
+assign th_passthrough_out = th_passthrough.output_reg;
 
 // sat 5 MSB's
 assign mult_2_sat = |mult_2_result[MULT_2_WIDTH-1:MULT_2_SAT_WIDTH] ? '1 : mult_2_result[MULT_2_SAT_WIDTH-1:0]; // Q(0.8.19)
@@ -128,12 +160,17 @@ assign result = result_rnd[OUT_WIDTH] ? '1 : result_rnd[OUT_WIDTH-1:0]; // Q(0.8
 // ZERO CROSS PULSE GENERATOR
 //
 always_ff @(posedge clk) begin
-  if (sample_in_0 < 0 && sample_in_1 > 0) begin 
-    zero_cross_pulse <= 1'b1;
+  if (rst_p) begin
+    zero_cross_pulse   <= 1'b0;
+    zero_cross_pulse_d <= 1'b0;
   end else begin
-    zero_cross_pulse <= 1'b0;
+    if (sample_in_0 < 0 && sample_in_1 >= 0) begin 
+      zero_cross_pulse <= 1'b1;
+    end else begin
+      zero_cross_pulse <= 1'b0;
+    end
+    zero_cross_pulse_d <= zero_cross_pulse; // allign pulse with result
   end
-  zero_cross_pulse_d <= zero_cross_pulse; // allign pulse with result
 end
 
 assign result_vld = zero_cross_pulse_d;

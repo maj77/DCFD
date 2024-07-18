@@ -8,6 +8,9 @@
 clc; clear; close all;
 
 %% init
+% Q(0.3.3) -> _ _ _ ._  _  _
+%             2 1 0 -1 -2 -3             
+%             000.001 = 2^-3 -> 0.1250
 ni = 3; % no. of integer bits of a1 and a2
 nf = 3; % no. of fract bits 
 range = 2^(ni-1);

@@ -22,8 +22,8 @@
 
 module interpolator_tb();
 
-localparam DATA_WIDTH    = 32;
-localparam PULSE_SAMPLES = 801;
+localparam DATA_WIDTH    = 12;
+localparam PULSE_SAMPLES = 10;
 
 logic                         clk                               ;
 logic                         rst_p                             ;
@@ -33,7 +33,10 @@ logic signed [DATA_WIDTH-1:0] result_samples [2:0]              ;
 logic        [DATA_WIDTH-1:0] in_pulse_arr   [PULSE_SAMPLES-1:0];
 
 initial begin
-  $readmemh("D:/Studia_EiT/magisterskie/Praca_Magisterska/DCFD/CFD_rtl/CFD/gaussian_impulse.txt", in_pulse_arr);
+  //$readmemh("D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/CFD_rtl/CFD/gaussian_impulse_12b.txt", in_pulse_arr);
+  for(integer i=0; i<10; i=i+1) begin
+        in_pulse_arr[i] = 11'd10 + i[11:0]*7;
+  end
 end
 
 initial
@@ -49,7 +52,7 @@ end
 initial begin
      sample_0 = '{default:0};
      sample_1 = '{default:0};
- #20 sample_1 = in_pulse_arr[0];
+// #20 sample_1 = in_pulse_arr[0];
  #5  
      for (int n=0; n<PULSE_SAMPLES-1; n=n+1) begin
        #10
