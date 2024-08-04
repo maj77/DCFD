@@ -8,7 +8,6 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-
 module cfd_tb();
 `include "defines.vh"
 `include "test_vectors.vh"
@@ -19,8 +18,6 @@ module cfd_tb();
 //localparam PULSE_SAMPLES = 2201; //801; //32;
 //localparam CLK_HALF_T    = 5;
 //localparam ADC_PERIOD_NS = 100;
-
-//import "DPI-C" function string scandir(string path);
 
 ////////////////////////////////////////////////////////////
 // CFD CONNECTIONS
@@ -48,11 +45,11 @@ logic                th_verilog_samp_inserted; // threshold sample calculated in
 
 
 ////////////////////////////////////////////////////////////
-// LOAD TEST VECTORS
+// LOAD TEST VECTORS - deprecated
 ////////////////////////////////////////////////////////////
 // vivado executes from different location than source files 
-string path     = "D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/python_scripts/TV/PROCESSED_TV/amplitude_1_.txt";
-string path_th  = "D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/python_scripts/TV/PROCESSED_TV/amplitude_1_threshold_sample_.txt";
+// string path     = "D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/python_scripts/TV/PROCESSED_TV/amplitude_1_.txt";
+// string path_th  = "D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/python_scripts/TV/PROCESSED_TV/amplitude_1_threshold_sample_.txt";
 
 
 ////////////////////////////////////////////////////////////
@@ -93,6 +90,7 @@ initial begin
   end
   
   amp_testname = amp_testname.first;
+  $finish();
 
   #(100*CLK_HALF_T) 
   for(int wave_no=0; wave_no<WIDTH_SWEEP_LEN; wave_no=wave_no+1) begin
@@ -117,38 +115,45 @@ end
 //TODO: wrap it into task
 bit cfd_zc;
 bit passth_zc;
-integer zc_diff_clks;
+integer zc_diff_clks = 0;
 integer zc_diff_clks_arr[$];
 always @(posedge pulse_out) begin : catch_cfd_zc_vld
   cfd_zc = 1;
+  // $display("[DEBUG] pulse_out posedge event at %f [ns]", $realtime());
 end
 always @(posedge th_passthrough_out_vld) begin : catch_tb_zc_vld
   passth_zc = 1;
+  // $display("[DEBUG] th_passth_out_vld posedge event at %f [ns]", $realtime());
 end
-always @(passth_zc, cfd_zc) begin
+always @(zc_diff_clks) begin
+  // $display("[DEBUG] zc_clk_diffs changed at %f [ns]", $realtime());
+end
+
+always @(posedge passth_zc, posedge cfd_zc) begin
+  #1; // to overcome race condition
+  // $display("[DEBUG] cfd_zc = %d, passth_zc = %d at time: %f [ns]", cfd_zc, passth_zc, $realtime());
   if (cfd_zc === 1 && passth_zc === 0) begin
-    zc_diff_clks = 0; 
+    // zc_diff_clks = 0; 
     do begin
       @(posedge clk) zc_diff_clks = zc_diff_clks + 1;
     end while(passth_zc != 1);
     cfd_zc    = 0;
     passth_zc = 0; 
-    $display("[INFO] Difference between cfd zc pulse and passthrough zc pulse is: %d [clocks]", zc_diff_clks);
-  end 
-  else if (cfd_zc === 0 && passth_zc === 1) begin
-    zc_diff_clks = 0;
+    $display("[INFO] Difference between cfd zc pulse and passthrough zc pulse is: %d [clocks], cfd pulse first\n", zc_diff_clks);
+  end else if (cfd_zc === 0 && passth_zc === 1) begin
+    // zc_diff_clks = 0;
     do begin
-      @(posedge clk) zc_diff_clks = zc_diff_clks + 1;
+      @(posedge clk) zc_diff_clks = zc_diff_clks - 1;
     end while(cfd_zc != 1);
     cfd_zc    = 0;
     passth_zc = 0;
-    $display("[INFO] Difference between cfd zc pulse and passthrough zc pulse is: %d [clocks]", zc_diff_clks);
+    $display("[INFO] Difference between cfd zc pulse and passthrough zc pulse is: %d [clocks], passth pulse first\n", zc_diff_clks);
   end else begin
-    zc_diff_clks = 0;
     cfd_zc       = 0;
     passth_zc    = 0;
-    $display("[INFO] CFD ZC PULSE AND PASSTHROUGH ZC PULSE OCCURED AT THE SAME TIME: 0 [clocks]");
+    $display("[INFO] CFD ZC PULSE AND PASSTHROUGH ZC PULSE OCCURED AT THE SAME TIME: 0 [clocks]\n");
   end
+  #(CLK_HALF_T) zc_diff_clks = 0; // delay to get this signal visible on waves
 end
 
 ////////////////////////////////////////////////////////////

@@ -4117,6 +4117,7 @@ always_ff @(posedge clk) begin
 		12'b111111111101 : data_o <= 13'h0001;
 		12'b111111111110 : data_o <= 13'h0001;
 		12'b111111111111 : data_o <= 13'h0001;
+		12'b11111111111 : data_o <= 13'h000;
 	endcase
 end
 endmodule

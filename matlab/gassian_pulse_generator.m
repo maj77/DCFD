@@ -19,12 +19,12 @@ fxp_frac  = 0;
 fxp_frac_int = 6;
 
 % 12 bits -> max decimal value = 4095 Q(0.12.0) and ~63.98 in Q(0.6.6)
-amplitude_max   = 2^(fxp_width); % max value that can be saved on 12 bits
+amplitude_max   = 2^(fxp_width-fxp_frac_int); % max value that can be saved on 12 bits
 amplitude_min   = 2^3;
 
 % 1 bit = 1 decimal = 0.015625 in Q(0.6.6)
-epsilon         = 2^(fxp_frac);
-epsilon_max     = 2*epsilon;
+epsilon         = 2^(-fxp_frac_int);
+epsilon_mult    = 10;           % max epsilon = epsilon*epsilon_mult 
 amp_step        = 10;
 width_coeff_max = 5000;
 width_coeff_min = 1000;
@@ -39,12 +39,10 @@ x = -0.01+start:T_adc:0.01+stop;
 x_size = size(x,2);
 
 %% generate pulses
-DELAY = 80;
-ROWS = 1;
-COLUMNS = 2;
+
 % amplitude sweep
 amplitude_sweep_arr = zeros(1,x_size);
-amplitude_sweep_arr_fxp = zeros(1,x_size);
+amplitude_sweep_arr_fxp = fi(zeros(1,x_size), 1, fxp_width+1, fxp_frac_int);
 
 j = 1;
 for amplitude = amplitude_min:amp_step:amplitude_max
@@ -52,18 +50,10 @@ for amplitude = amplitude_min:amp_step:amplitude_max
         amplitude, width_coeff_min, x, fxp_width, fxp_frac_int);
     j = j+1;
 end
-wave_delayed = [zeros(size(amplitude_sweep_arr_fxp, 1),DELAY), amplitude_sweep_arr];
-amplitude_sweep_scaled_arr_fxp = fi(0.8.*amplitude_sweep_arr_fxp, 0, fxp_frac_int, fxp_width);
-amplitude_sweep_scaled_arr = 0.8.*amplitude_sweep_arr_fxp;
-log = "success"
-figure(1);
-hold("on");
-plot(x, amplitude_sweep_arr(12,:));
-plot(x, amplitude_sweep_arr_fxp(12,:));
-%%
+
 % width sweep
 width_sweep_arr = zeros(1,x_size);
-width_sweep_arr_fxp = zeros(1,x_size);
+width_sweep_arr_fxp = fi(zeros(1,x_size), 1, fxp_width+1, fxp_frac_int);
 j = 1;
 for width_coeff = width_coeff_min:100:width_coeff_max
     [width_sweep_arr(j,:), width_sweep_arr_fxp(j,:)]  = gaussian_pulse( ...
@@ -74,11 +64,13 @@ end
 
 %% find index of threshold sample
 clc;
+%TODO: THIS CODE SHOULD BE REFACTORIZED
 
 amplitude_sweep_arr_threshold = zeros(1,x_size);
 width_sweep_arr_threshold     = zeros(1,x_size);
 amp_threshold_idx_arr = zeros(1,size(amplitude_sweep_arr_fxp,1));
 width_threshold_idx_arr = zeros(1,size(amplitude_sweep_arr_fxp,1));
+fail = 0;
 
 % find index using epsilon equal to minimum fxp value (2^-fxp_frac)
 % if no matching value found then extend 
@@ -92,7 +84,7 @@ for i = 1:1:size(amplitude_sweep_arr_fxp,1)
         amp_threshold_idx_arr(i) = threshold_idx(1); % for debugging
     else
         % searching failed, search with extended epsilon:
-        for ii = 1:1:epsilon_max
+        for ii = 1:1:epsilon_mult
             threshold_idx = find(vect<=threshold_val+ii*epsilon & vect>=threshold_val-ii*epsilon);
             if size(threshold_idx) > 0
 %                 fprintf("success! found index for i = %d, ii = %d\n", i, ii);
@@ -100,7 +92,7 @@ for i = 1:1:size(amplitude_sweep_arr_fxp,1)
 %                 fprintf("index value = %d\n", threshold_idx(1));
 %                 fprintf("max val = %f\ntheoretical threshold val = %f\nfound threshold val = %f\n", max_val, threshold_val, vect(1,threshold_idx(1)));
 %                 fprintf("\n")
-                amplitude_sweep_arr_threshold(i,threshold_idx(1)) =1; %amplitude_max;
+                amplitude_sweep_arr_threshold(i,threshold_idx(1)) = 1; %amplitude_max;
                 amp_threshold_idx_arr(i) = threshold_idx(1);
                 fail = 0;
                 break
@@ -113,7 +105,12 @@ for i = 1:1:size(amplitude_sweep_arr_fxp,1)
         end
     end
 end
+if fail == 0
+      fprintf("[AMPLITUDE] PASS \n");
+end
 
+
+fail = 0; % reset flag
 for i = 1:1:size(width_sweep_arr_fxp,1)
     vect = width_sweep_arr_fxp(i,:);
     max_val = max(vect);
@@ -124,7 +121,7 @@ for i = 1:1:size(width_sweep_arr_fxp,1)
         width_threshold_idx_arr(i) = threshold_idx(1);
     else
         % searching failed, search with extended epsilon:
-        for ii = 1:1:epsilon_max
+        for ii = 1:1:epsilon_mult
             threshold_idx = find(vect<=threshold_val+ii*epsilon & vect>=threshold_val-ii*epsilon);
             if size(threshold_idx) > 0
 %                  fprintf("success! found index for i = %d, ii = %d\n", i, ii);
@@ -145,18 +142,35 @@ for i = 1:1:size(width_sweep_arr_fxp,1)
         end
     end
 end
+if fail == 0
+    fprintf("[WIDTH] PASS \n");
+end
 %% plot waves
 figure(1)
 hold on;
-plot(x, amplitude_sweep_arr_fxp(1,:), 'bo');
-amplitude_sweep_arr_threshold = amplitude_sweep_arr_fxp(1,amplitude_threshold_idx_arr);
-plot(x, amplitude_sweep_arr_threshold(1,:), 'ro')
-%% aa
-figure(2)
-plot(x, width_sweep_arr_fxp(28,:), 'bo');
-hold on;
-plot(x, width_sweep_arr_threshold(28,:), 'r')
+plot(x, amplitude_sweep_arr_fxp(6,:), 'bo');
+% amplitude_sweep_arr_threshold = amplitude_sweep_arr_fxp(1,amplitude_threshold_idx_arr);
+stairs(x, max(amplitude_sweep_arr_fxp(6,:))*amplitude_sweep_arr_threshold(1,:))
+%% CALCULATE DELAYS
 
+scaled_amp_wave   = 0.8.*amplitude_sweep_arr_fxp;
+scaled_width_wave = 0.8.*width_sweep_arr_fxp;
+
+[~, amplitude_threshold_samp_number] = max(amplitude_sweep_arr_threshold, [], 2);
+[~, width_threshold_samp_number]     = max(width_sweep_arr_threshold, [], 2);
+
+[~, amplitude_scaled_wave_max_val_samp_number] = max(amplitude_sweep_arr_fxp, [], 2);
+[~, width_scaled_wave_max_val_samp_number]     = max(width_sweep_arr_fxp, [], 2);
+
+AMPLIDUDE_DELAYS = amplitude_scaled_wave_max_val_samp_number - amplitude_threshold_samp_number;
+WIDTH_DELAYS     = width_scaled_wave_max_val_samp_number - width_threshold_samp_number;
+
+%%
+aa = -2:0.001:4;
+rc_wave = (1-exp(-aa/0.8));
+figure(1);
+hold("on");
+plot(rc_wave, 'Linewidth', 20)
 
 %% convert to fi
 amplitude_sweep_arr_fxp = fi(amplitude_sweep_arr, 0, fxp_width, fxp_frac);

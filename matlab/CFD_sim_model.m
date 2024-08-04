@@ -22,7 +22,7 @@ out_int       = 4;
 out_fract     = 4;
 out_width     = out_fract + out_int;
 
-DELAY = 120; % delay in samples
+DELAY = 153; % delay in samples
 SCALE = 0.8;
 
 %% use calss
@@ -36,8 +36,8 @@ cfd = cfd.subtract_wave();
 
 res = cfd.subtracted_wave();
 %% generate waves
-testv = amplitude_sweep_arr_fxp(10,:); %amplitude_sweep_arr_fxp(7,:);
-testv2 = amplitude_sweep_arr(1,:);
+testv = amplitude_sweep_arr_fxp(5,:);
+testv2 = amplitude_sweep_arr(5,:);
 [dummy, max_amp_max_width_fxp]= gaussian_pulse(amplitude_max, width_coeff_max, x, fxp_width, fxp_frac);
 %testv = double(max_amp_max_width_fxp);
 %% delay, scale, subtract

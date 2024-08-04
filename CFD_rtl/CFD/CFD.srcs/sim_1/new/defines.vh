@@ -16,7 +16,7 @@
 // PARAMETERS
 //////////////////////////////////////////////////////////////////////////////////
 parameter IN_WIDTH        = 12;
-parameter PIPE_DLY        = 80; // delay of 120 samples, new sample every 1 cfd clock
+parameter PIPE_DLY        = 142; // delay of 120 samples, new sample every 1 cfd clock
 parameter PULSE_SAMPLES   = 2201; //801; //32;
 parameter CLK_HALF_T      = 5; // ns
 parameter CLK_SER_HALF_T  = 1.67;

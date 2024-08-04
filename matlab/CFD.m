@@ -4,7 +4,16 @@
 % Author:      Marcin Maj
 % Date(circa): 12.09.23
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
+%DEPRECATED
 %% CFD calculations
 clc; clear; close all;
 

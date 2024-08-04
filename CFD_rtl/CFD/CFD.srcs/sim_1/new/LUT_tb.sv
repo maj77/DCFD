@@ -28,30 +28,34 @@ logic signed [  DATA_WIDTH-1:0] data                 ;
 real a1_rl, a2_rl, data_rl;
 real data_checker         ;
 
+
 initial
   clk = 1'b0;
 always
   #5 clk = ~clk;
 
 initial begin
-  $readmemb("D:/Studia_EiT/magisterskie/Praca_Magisterska/DCFD/matlab/LUT_ADDR_2x_s_3i_3f.txt", addr_arr);
+  $readmemb("D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/matlab/generated_data/LUT_ADDR_2x_6b__s_2i_3f.txt", addr_arr);
 end
 
 initial begin
+  a1 = 0;
+  a2 = 0;
   for (int n=0; n<N_ADDR; n=n+1) begin
-    #10
+    #10;
     a1 = $signed(addr_arr[n][2*ADDR_WIDTH-1:ADDR_WIDTH]);
     a2 = $signed(addr_arr[n][ADDR_WIDTH-1:0]);
   end
+  #200 $finish();
 end
 
 always @(posedge clk) begin
   data_checker <= 1/(a1_rl+a2_rl);
-end;
+end
 
-assign  a1_rl   = $itor(a1)/8;
-assign  a2_rl   = $itor(a2)/8;
-assign  data_rl = $itor(data)/2048;
+assign  a1_rl   = $itor(a1)/8; // scale Q(0.3.3) to decimal
+assign  a2_rl   = $itor(a2)/8; // scale Q(0.3.3) to decimal
+assign  data_rl = $itor(data)/2048; // scale Q(0.5.11) to decimal
 
 LUT #(
   .ADDR_WIDTH(ADDR_WIDTH),

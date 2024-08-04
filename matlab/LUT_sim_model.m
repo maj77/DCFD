@@ -13,8 +13,8 @@ a2 = a1;
 
 %% create LUT adresses
 a1_fxp = fi(a1, 0, sample_in_width, sample_in_fract)';
-a2_fxp = fi(a2, 0, sample_in_width, sample_in_fract)';
-
+a2_fxp = fi(a2, 0, sample_in_width, sample_in_fract)'; 
+ 
 a1_bin = bin(a1_fxp);
 size(a1_fxp)
 size(a1_bin)

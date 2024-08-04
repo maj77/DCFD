@@ -26,15 +26,15 @@ module cfd #( IN_WIDTH      = 12,
               output logic                th_passthrough_out_vld 
             );
 
-localparam SCALE_FACTOR       = 12'b1100_1100_1101; // 0.8 in Q(0.12.12)
+localparam SCALE_FACTOR       = 12'b1100_1100_1101;   // 0.8 in Q(0.0.12)
 localparam SCALE_FACTOR_WIDTH = $bits(SCALE_FACTOR);
 localparam SCALED_WIDTH       = SCALE_FACTOR_WIDTH + IN_WIDTH;
 
 localparam ZC_IN_WIDTH        = SCALED_WIDTH + 1;
 localparam ZC_IN_FRACT        = SCALE_FACTOR_WIDTH;
 
-localparam ZC_OUT_WIDTH       = 4;
-localparam ZC_OUT_FRACT       = 4;
+localparam ZC_OUT_WIDTH       = 16; // TODO: check if valid
+localparam ZC_OUT_FRACT       = 8;  // TODO: check if valid
 
 localparam CFD_TOP_PIPELINE_WIDTH = 4; 
 

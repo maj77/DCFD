@@ -20,8 +20,8 @@ module zc_interpolator #(
   // data ports
   input  logic                        clk,
   input  logic                        rst_p,
-  input  logic signed [ IN_WIDTH-1:0] sample_in_0, // a1 on block diagram
-  input  logic signed [ IN_WIDTH-1:0] sample_in_1, // a2 on block diagram
+  input  logic signed [ IN_WIDTH-1:0] sample_in_0, // a1 on block diagram, Q(1.12.12)
+  input  logic signed [ IN_WIDTH-1:0] sample_in_1, // a2 on block diagram, Q(1.12.12)
   output logic        [OUT_WIDTH-1:0] result,
   output logic                        result_vld,
   //  verification ports
@@ -31,28 +31,28 @@ module zc_interpolator #(
   output logic                           th_passthrough_out
 );                                  
 
-localparam PERIOD_WIDTH    = $clog2(ADC_PERIOD_NS);
-localparam ABS_IN_WIDTH    = IN_WIDTH-1;
+localparam PERIOD_WIDTH    = $clog2(ADC_PERIOD_NS); // [BUG MONITOR] possible bugs if PERIOD_WIDTH changes?
+localparam ABS_IN_WIDTH    = IN_WIDTH - 1;
 localparam ABS_IN_FRACT    = IN_FRACT;
 
-localparam LUT_ADDR_WIDTH  = 6;
-localparam LUT_DATA_WIDTH  = 16;
-localparam LUT_FRACT_WIDTH = 8;
+localparam LUT_ADDR_WIDTH  = 12;
+localparam LUT_DATA_WIDTH  = 7+6; //8+7;
+localparam LUT_FRACT_WIDTH = 6;
 
 localparam MULT_1_WIDTH     = PERIOD_WIDTH + ABS_IN_WIDTH;
-localparam MULT_1_SAT_WIDTH = MULT_1_WIDTH - ABS_IN_FRACT + 1;
+localparam MULT_1_SAT_WIDTH = MULT_1_WIDTH - ABS_IN_FRACT + 1; // = 20 TODO: CHANGE IT
 
 localparam MULT_2_WIDTH     = 2*LUT_DATA_WIDTH;
 localparam MULT_2_SAT_WIDTH = MULT_2_WIDTH - 5; // TODO: figure out how to get rid of this magic number
 
-localparam ADDR_SAT_BITS   = 9;
+localparam ADDR_SAT_BITS   = 6;
 localparam SAT_ADDR_WIDTH  = ABS_IN_WIDTH-ADDR_SAT_BITS;
 
 
-
-logic [PERIOD_WIDTH-1:0] T_adc;
-logic [ABS_IN_WIDTH-1:0] samp_0_abs;
-logic [ABS_IN_WIDTH-1:0] samp_1_abs;
+ 
+logic [PERIOD_WIDTH-1:0] T_adc;       // Q(0.7.0) will change if ADC_PERIOD changes
+logic [ABS_IN_WIDTH-1:0] samp_0_abs;  // Q(0.12.12)
+logic [ABS_IN_WIDTH-1:0] samp_1_abs;  // Q(0.12.12)
 
 logic  [    MULT_1_WIDTH-1:0] mult_1_result;
 logic  [MULT_1_SAT_WIDTH-1:0] mult_1_sat;      // Q(0.8.12)
@@ -103,32 +103,44 @@ always_ff @(posedge clk) begin
 end
 
 // sat 11 bits
+//                                         [30:20]
 assign mult_1_sat = |mult_1_result[MULT_1_WIDTH-1:MULT_1_SAT_WIDTH] ? '1 : mult_1_result[MULT_1_SAT_WIDTH-1:0]; // Q(0.8.12)
 
 // truncate 4 LSB's
-assign mult_1_scaled = mult_1_sat[MULT_1_SAT_WIDTH-1:MULT_1_SAT_WIDTH-LUT_DATA_WIDTH]; // Q(0.8.8) 
+//                                         [19:20-15] -> [19:5]
+//                                      _  _  _  _  _  _  _  _ . _  _  _ _ _ _ _ _ _ _ _ _
+//                                      19 18 17 16 15 14 13 12  11 10 9 8 7 6 5 4 3 2 1 0
+assign mult_1_scaled = mult_1_sat[MULT_1_SAT_WIDTH-1:MULT_1_SAT_WIDTH-LUT_DATA_WIDTH]; // Q(0.8.7) 
 
 //
 // LUT PATH
 //
-assign addr0_sat = |samp_0_abs[ABS_IN_WIDTH-1:SAT_ADDR_WIDTH] ? '1 : samp_0_abs[SAT_ADDR_WIDTH-1:0]; // Q(0.3.12)
-assign addr1_sat = |samp_1_abs[ABS_IN_WIDTH-1:SAT_ADDR_WIDTH] ? '1 : samp_1_abs[SAT_ADDR_WIDTH-1:0]; // Q(0.3.12)
+assign addr0_sat = |samp_0_abs[ABS_IN_WIDTH-1:SAT_ADDR_WIDTH] ? '1 : samp_0_abs[SAT_ADDR_WIDTH-1:0]; // Q(0.6.12)
+assign addr1_sat = |samp_1_abs[ABS_IN_WIDTH-1:SAT_ADDR_WIDTH] ? '1 : samp_1_abs[SAT_ADDR_WIDTH-1:0]; // Q(0.6.12)
+
+
+logic [  LUT_ADDR_WIDTH:0] samp_sum;
+logic [LUT_ADDR_WIDTH-1:0] lut_addr;
 
 // TODO: check if rounding gives better results
 always_comb begin : trunc_addr_c
-  a1 = addr0_sat[SAT_ADDR_WIDTH-1:9];
-  a2 = addr1_sat[SAT_ADDR_WIDTH-1:9];
+  a1 = addr0_sat[SAT_ADDR_WIDTH-1:6]; // Q(0.6.6)
+  a2 = addr1_sat[SAT_ADDR_WIDTH-1:6]; // Q(0.6.6)
+end
+
+always_comb begin : calc_and_sat_samp_sum
+  samp_sum = a1+a2; // Q(0.7.6)
+  lut_addr = (samp_sum[LUT_ADDR_WIDTH]===1'b1) ? '1 : samp_sum; // Q(0.7.6) -> Q(0.6.6)
 end
 
 LUT #(
   .ADDR_WIDTH(LUT_ADDR_WIDTH),
   .DATA_WIDTH(LUT_DATA_WIDTH)
 )i_lut(
-  .clk   (clk     ),
-  .rst_p (rst_p   ),
-  .a1    (a1      ),
-  .a2    (a2      ),
-  .data_o(lut_data)
+  .clk    (clk     ),
+  .rst_p  (rst_p   ),
+  .address(lut_addr), // Q(0.6.6)
+  .data_o (lut_data)  // Q(0.7.6)
 );
 
 //
