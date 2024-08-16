@@ -95,6 +95,7 @@ initial begin : feed_samples
       end
       th_matlab_samp_inserted   = amplitude_sweep_thresholds[wave_no][sample_no]; 
       #(2*CLK_HALF_T);
+      #(15*2*CLK_HALF_T); // pass new sample every 16 fpga clocks
     end
     amp_testname = amp_testname.next;
     // $stop();

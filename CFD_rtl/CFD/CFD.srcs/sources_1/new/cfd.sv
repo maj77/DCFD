@@ -46,7 +46,7 @@ logic [SCALED_WIDTH-1:0] scaled_sample;
 
 logic signed [ZC_IN_WIDTH-1:0] sub_result       ;
 logic signed [ZC_IN_WIDTH-1:0] sub2_result      ;
-logic signed [ZC_IN_WIDTH-1:0] sub_result_d     ;
+// logic signed [ZC_IN_WIDTH-1:0] sub_result_d     ;
 logic signed [ZC_IN_WIDTH-1:0] sub_result_temp  ;
 logic signed [ZC_IN_WIDTH-1:0] zc_sample_in[1:0];
 
@@ -144,42 +144,42 @@ end
 assign sub_result  = sample_d_reg - scaled_sample;
 assign sub2_result = scaled_sample - sample_d_reg;
 
-always_ff @(posedge clk) begin
-    if(rst_p) begin
-        sub_result_d <= '{default:0};
-    end else begin
-        sub_result_d <= sub_result;
-    end
-end
+// always_ff @(posedge clk) begin
+//     if(rst_p) begin
+//         sub_result_d <= '{default:0};
+//     end else begin
+//         sub_result_d <= sub_result;
+//     end
+// end
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // UNUSED LOGIC - MOVING AVERAGE
-moving_average #(
-    .DATA_WIDTH (ZC_IN_WIDTH),
-    .NO_AVG_SAMP(16          )
-) i_sub_res_avg (
-    .clk     (clk            ),
-    .rst_p   (rst_p          ),
-    .data_in (sub_result     ),
-    .data_out(sub_result_mavg)
-);  
+// moving_average #(
+//     .DATA_WIDTH (ZC_IN_WIDTH),
+//     .NO_AVG_SAMP(16          )
+// ) i_sub_res_avg (
+//     .clk     (clk            ),
+//     .rst_p   (rst_p          ),
+//     .data_in (sub_result     ),
+//     .data_out(sub_result_mavg)
+// );  
 
-// This part is for testing zero-cross from moving average of subtraction result 
-logic m_avg_zero_cross;
-integer m_avg_zc_cnt=0;
-always @(posedge clk) begin
-    sub_result_mavg_r0 <= sub_result_mavg;
-    sub_result_mavg_r1 <= sub_result_mavg_r0;
-end
+// // This part is for testing zero-cross from moving average of subtraction result 
+// logic m_avg_zero_cross;
+// integer m_avg_zc_cnt=0;
+// always @(posedge clk) begin
+//     sub_result_mavg_r0 <= sub_result_mavg;
+//     sub_result_mavg_r1 <= sub_result_mavg_r0;
+// end
 
-always_comb begin
-    if (sub_result_mavg_r1 <= 0 && sub_result_mavg_r0 > 0) begin
-        m_avg_zero_cross = 1'b1;
-        m_avg_zc_cnt = m_avg_zc_cnt + 1;
-    end else begin
-        m_avg_zero_cross = 1'b0;
-    end
-end
+// always_comb begin
+//     if (sub_result_mavg_r1 <= 0 && sub_result_mavg_r0 > 0) begin
+//         m_avg_zero_cross = 1'b1;
+//         m_avg_zc_cnt = m_avg_zc_cnt + 1;
+//     end else begin
+//         m_avg_zero_cross = 1'b0;
+//     end
+// end
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -190,10 +190,13 @@ always_ff @(posedge clk) begin
     zc_sample_in <= '{default:0};
   end else begin
     // passthrough data for verification
-    data_passthrough.sub_result_reg   <= data_passthrough.dly_reg;
-    data_passthrough.interp_input_reg <= data_passthrough.sub_result_reg;
-    th_passthrough.sub_result_reg     <= th_passthrough.dly_reg;
-    th_passthrough.interp_input_reg   <= th_passthrough.sub_result_reg;
+    // [INFO] sub_result_d signal is not being used!
+    // data_passthrough.sub_result_reg   <= data_passthrough.dly_reg;
+    // data_passthrough.interp_input_reg <= data_passthrough.sub_result_reg;
+    data_passthrough.interp_input_reg <= data_passthrough.dly_reg;
+    // th_passthrough.sub_result_reg     <= th_passthrough.dly_reg;
+    // th_passthrough.interp_input_reg   <= th_passthrough.sub_result_reg;
+    th_passthrough.interp_input_reg <= th_passthrough.dly_reg;
     // acutal samples
     zc_sample_in[0]                   <= sub_result;
     zc_sample_in[1]                   <= zc_sample_in[0];
