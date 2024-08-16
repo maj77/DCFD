@@ -16,7 +16,8 @@ T_adc = 1/f_adc; % actually it's not used as ADC period, instead it is used to s
 
 fxp_width = 12;
 fxp_frac  = 0;
-fxp_frac_int = 6;
+fxp_frac_int = 0;
+
 
 % 12 bits -> max decimal value = 4095 Q(0.12.0) and ~63.98 in Q(0.6.6)
 amplitude_max   = 2^(fxp_width-fxp_frac_int); % max value that can be saved on 12 bits
@@ -25,10 +26,11 @@ amplitude_min   = 2^3;
 % 1 bit = 1 decimal = 0.015625 in Q(0.6.6)
 epsilon         = 2^(-fxp_frac_int);
 epsilon_mult    = 10;           % max epsilon = epsilon*epsilon_mult 
-amp_step        = 10;
+wave_signed     = 0;
+amp_step        = 200;
 width_coeff_max = 5000;
 width_coeff_min = 1000;
-width_step      = 10;
+width_step      = 100;
 stop            = 0.1;
 start           = -0.1;
 
@@ -42,7 +44,8 @@ x_size = size(x,2);
 
 % amplitude sweep
 amplitude_sweep_arr = zeros(1,x_size);
-amplitude_sweep_arr_fxp = fi(zeros(1,x_size), 1, fxp_width+1, fxp_frac_int);
+amplitude_sweep_arr_fxp = fi(zeros(1,x_size), wave_signed, fxp_width+wave_signed, fxp_frac_int); % actual format is Q (0.6.6) but for further calculations this array 
+                                                                                                 % must be signed, so dummy bit which will be unused was added.
 
 j = 1;
 for amplitude = amplitude_min:amp_step:amplitude_max
@@ -55,21 +58,31 @@ end
 width_sweep_arr = zeros(1,x_size);
 width_sweep_arr_fxp = fi(zeros(1,x_size), 1, fxp_width+1, fxp_frac_int);
 j = 1;
-for width_coeff = width_coeff_min:100:width_coeff_max
+for width_coeff = width_coeff_min:width_step:width_coeff_max
     [width_sweep_arr(j,:), width_sweep_arr_fxp(j,:)]  = gaussian_pulse( ...
         amplitude, width_coeff, x, fxp_width, fxp_frac_int);
     j = j+1;
 end
-
+%%
+figure(1);
+hold("on");
+for n=1:1:82
+    plot(amplitude_sweep_arr(n,:))
+end
 
 %% find index of threshold sample
 clc;
 %TODO: THIS CODE SHOULD BE REFACTORIZED
 
-amplitude_sweep_arr_threshold = zeros(1,x_size);
+amplitude_sweep_arr_threshold  = zeros(1,x_size);
+amp_threshold_idx_arr          = zeros(1,size(amplitude_sweep_arr_fxp,1));
+amplitude_sweep_arr_threshold2 = zeros(1,x_size);
+amp_threshold_idx_arr2         = zeros(1,size(amplitude_sweep_arr_fxp,1));
+
+
 width_sweep_arr_threshold     = zeros(1,x_size);
-amp_threshold_idx_arr = zeros(1,size(amplitude_sweep_arr_fxp,1));
 width_threshold_idx_arr = zeros(1,size(amplitude_sweep_arr_fxp,1));
+
 fail = 0;
 
 % find index using epsilon equal to minimum fxp value (2^-fxp_frac)
@@ -109,7 +122,14 @@ if fail == 0
       fprintf("[AMPLITUDE] PASS \n");
 end
 
+[amplitude_sweep_arr_threshold2, amp_threshold_idx_arr2] = calc_thresholds(amplitude_sweep_arr_threshold, THRESHOLD, epsilon);
 
+if (amplitude_sweep_arr_threshold2 == amplitude_sweep_arr_threshold)
+    display("[INFO] DUPA");
+end
+
+
+%%
 fail = 0; % reset flag
 for i = 1:1:size(width_sweep_arr_fxp,1)
     vect = width_sweep_arr_fxp(i,:);
@@ -145,12 +165,7 @@ end
 if fail == 0
     fprintf("[WIDTH] PASS \n");
 end
-%% plot waves
-figure(1)
-hold on;
-plot(x, amplitude_sweep_arr_fxp(6,:), 'bo');
-% amplitude_sweep_arr_threshold = amplitude_sweep_arr_fxp(1,amplitude_threshold_idx_arr);
-stairs(x, max(amplitude_sweep_arr_fxp(6,:))*amplitude_sweep_arr_threshold(1,:))
+
 %% CALCULATE DELAYS
 
 scaled_amp_wave   = 0.8.*amplitude_sweep_arr_fxp;
@@ -165,44 +180,51 @@ scaled_width_wave = 0.8.*width_sweep_arr_fxp;
 AMPLIDUDE_DELAYS = amplitude_scaled_wave_max_val_samp_number - amplitude_threshold_samp_number;
 WIDTH_DELAYS     = width_scaled_wave_max_val_samp_number - width_threshold_samp_number;
 
-%%
-aa = -2:0.001:4;
-rc_wave = (1-exp(-aa/0.8));
-figure(1);
-hold("on");
-plot(rc_wave, 'Linewidth', 20)
+%% save amplitude sweep files: data + threshold sample
 
-%% convert to fi
-amplitude_sweep_arr_fxp = fi(amplitude_sweep_arr, 0, fxp_width, fxp_frac);
-width_sweep_arr_fxp = fi(width_sweep_arr, 0, fxp_width, fxp_frac);
-
-%amplitude_sweep_arr_fxp_hex = hex(amplitude_sweep_arr_fxp);
-
-%% save amplitude sweep files
+% save waves, each wave to separate file
 j = 1;
-for amplitude = 1:amp_step:amplitude_max
-    amplitude_sweep_arr_fxp_hex       = hex(amplitude_sweep_arr_fxp(j,:));
-    amplitude_sweep_arr_threshold_bin = dec2bin(amplitude_sweep_arr_threshold(j,:));
-    fid = fopen("TV/amplitude_" + amplitude + "_.txt", 'w');
-    fprintf(fid,'%c',amplitude_sweep_arr_fxp_hex);
+for amplitude = amplitude_min:amp_step:amplitude_max
+    fid = fopen("TV/amplitude_" +j+"_" + num2str(amplitude,'%04.f') + "_.txt", 'w');
+    amplitude_sweep_arr_fxp_hex = hex(amplitude_sweep_arr_fxp(j,:)); % Q (0.12.0)
+    fprintf(fid,'%c',amplitude_sweep_arr_fxp_hex); 
     fclose(fid);
+    j = j + 1;
+end
 
-    fid = fopen("TV/amplitude_" + amplitude + "_threshold_sample_.txt", 'w');
+% save threshold files, each vector to separate file
+j = 1;
+for amplitude = amplitude_min:amp_step:amplitude_max
+    fid = fopen("TV/amplitude_"+j+"_" + num2str(amplitude,'%04.f') + "_threshold_sample_.txt", 'w');
+    amplitude_sweep_arr_threshold_bin = dec2bin(amplitude_sweep_arr_threshold(j,:)); % Q (0.1.0)
     fprintf(fid,'%c',amplitude_sweep_arr_threshold_bin);
     fclose(fid);
-
-    j = j+1;
+    j = j + 1;
 end
+
+%% save results file
+% save each result to separate file
+clc;
+j = 1;
+for amplitude = amplitude_min:amp_step:amplitude_max
+    fid = fopen("TV/amplitude_" +j+"_" + num2str(amplitude,'%04.f') + "_result_.txt", 'w');
+    result_bin = hex(clocks_fxp_arr(1,j)); % Q (0.4.4)
+    fprintf(fid,'%c', result_bin);
+    j = j + 1;
+    fclose(fid);
+end    
+
+   
 %% save width sweep files
 j = 1;
-for width_coeff = width_coeff_min:100:width_coeff_max
+for width_coeff = width_coeff_min:width_step:width_coeff_max
     width_sweep_arr_fxp_hex = hex(width_sweep_arr_fxp(j,:));
     width_sweep_arr_threshold_bin = dec2bin(width_sweep_arr_threshold(j,:));
-    fid = fopen("TV/width_" + width_coeff + "_.txt", 'w');
+    fid = fopen("TV/width_" +j+"_" + num2str(width_coeff, '%04.f') + "_.txt", 'w');
     fprintf(fid,'%c',width_sweep_arr_fxp_hex);
     fclose(fid);
 
-    fid = fopen("TV/width_" + width_coeff + "_threshold_sample_.txt", 'w');
+    fid = fopen("TV/width_" +j+"_" + num2str(width_coeff, '%04.f') + "_threshold_sample_.txt", 'w');
     fprintf(fid,'%c',width_sweep_arr_threshold_bin);
     fclose(fid);
     j = j+1;
