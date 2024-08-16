@@ -1,15 +1,12 @@
 # DCFD
 Implementation of digital constant fraction discriminator on FPGA. \
-NOTE: this project is still in development and a lot can change!
 
-## Block Diagram 
+## Top level block diagram 
 ![image](https://github.com/maj77/DCFD/blob/experiment/CFD_top.svg)
 
-
 ## Modules used in design:
+### zc_interp.sv 
+Module performs interpolation between two samples. It is based on formula: clocks = abs(neg_sample)*T / (abs(neg_sample)+pos_sample)
+![image](https://github.com/maj77/DCFD/blob/experiment/zero_cross_module.svg)
 
-### Linear interpolation
-Module performs interpolation between two samples. It is based on formula: $s = s_0 + t * (s_1 - s_0)$ from wikipedia: [Lerp wikipedia](https://en.wikipedia.org/wiki/Linear_interpolation#Programming_language_support)
-![image](https://github.com/maj77/DCFD/blob/main/Interpolator.drawio.svg)
-### Serializer
-Module performs serialization of samples coming from linear interpolator, it works on $clk_{ser} = 1.5*clk$
+RTL has its matlab model which can generate input waves and calculate expected results with the same fxp precision as in RTL.
