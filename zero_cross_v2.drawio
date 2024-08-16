@@ -1,6 +1,6 @@
-<mxfile host="Electron" modified="2024-08-13T07:03:04.429Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.1.2 Chrome/114.0.5735.289 Electron/25.9.4 Safari/537.36" etag="t-PaJI0wP5I-qPvToTKC" version="22.1.2" type="device">
+<mxfile host="Electron" modified="2024-08-16T10:44:28.103Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.1.2 Chrome/114.0.5735.289 Electron/25.9.4 Safari/537.36" etag="7pg7SYzE8VB2OH0dl2MV" version="22.1.2" type="device">
   <diagram name="Page-1" id="Y2FZgOiFXhpu6reV6E0P">
-    <mxGraphModel dx="988" dy="669" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1000" math="0" shadow="0">
+    <mxGraphModel dx="1996" dy="1244" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1000" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -135,7 +135,7 @@
             <mxPoint x="1720" y="185" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="UK2O3-0YkTCJeF7wMZOj-48" value="result&lt;br&gt;Q(0.0.4)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="UK2O3-0YkTCJeF7wMZOj-48" value="result&lt;br&gt;Q(0.8.8)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="1730" y="170" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="UK2O3-0YkTCJeF7wMZOj-49" value="Q(0.15.14)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
@@ -268,12 +268,6 @@
         </mxCell>
         <mxCell id="vOfLENHbcM0k5HGYytfI-18" value="signal name: mult_2_result" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="1190" y="125" width="170" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="vOfLENHbcM0k5HGYytfI-19" value="TA CZĘŚĆ TODO Z RODZIAŁKĄ, MOŻNA ZOSTAWIĆ JAKĄŚ DUŻĄ &lt;br&gt;A POTEM W LABIE SPRAWDZIĆ JAKIE SĄ WYNIKI I DOPASOWAĆ FORMAT" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-          <mxGeometry x="1350" y="228" width="450" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="vOfLENHbcM0k5HGYytfI-21" value="" style="shape=ext;double=1;rounded=0;whiteSpace=wrap;html=1;glass=0;fillColor=none;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
-          <mxGeometry x="1330" y="120" width="460" height="166" as="geometry" />
         </mxCell>
         <mxCell id="nHo4nri2IlMKRbNSsKmd-1" value="signal name: mult_1_result" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="460" y="200" width="170" height="30" as="geometry" />
