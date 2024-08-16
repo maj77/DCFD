@@ -1,3 +1,4 @@
 *log
 *.lou
 *.wcfg
+CFD_rtl/CFD/*.txt
