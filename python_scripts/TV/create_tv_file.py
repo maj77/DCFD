@@ -10,18 +10,22 @@ ABSOLUTE_PATH = "D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/python_script
 #######################################################################################
 #   READ ALL TESTVECTORS FILENAMES
 #######################################################################################
-file_list = os.listdir(TV_DIR)
-# print(file_list)
+file_list_unsorted = os.listdir(TV_DIR)
+file_list = sorted(file_list_unsorted, key=lambda x: int(x.split('_')[1]))
 
-wave_amp_files = []
-th_amp_files = []
+wave_amp_files   = []
+th_amp_files     = []
+result_amp_files = []
 wave_width_files = []
-th_width_files = []
+th_width_files   = []
+
 # amplitude_61_.txt
 for file in file_list:
     if "amplitude" in file:
         if "threshold" in file:
             th_amp_files.append(file[0:-4])
+        elif "result" in file:
+            result_amp_files.append(file[0:-4])
         else:
             wave_amp_files.append(file[0:-4])
     if "width" in file:
@@ -61,6 +65,10 @@ AMP_FILES_COMMENT1 = """//////////////////////////////////////////////////
 // AMPLITUDE SWEEP VECTORS
 //////////////////////////////////////////////////
 """
+AMP_FILES_COMMENT_RESULTS = """//////////////////////////////////////////////////
+// AMPLITUDE SWEEP RESULTS
+//////////////////////////////////////////////////
+"""
 TH_FILES_COMMENT1 = """//////////////////////////////////////////////////
 // WIDTH SWEEP VECTORS
 //////////////////////////////////////////////////
@@ -76,19 +84,25 @@ TH_FILES_COMMENT2 =  """//////////////////////////////////////////////////
 INITIAL_START = """initial begin\n"""
 INITIAL_END   = """end\n"""
 
-PARAMS = f"""localparam AMP_SWEEP_LEN = {amp_sweep_len};
-localparam WIDTH_SWEEP_LEN = {width_sweep_len};\n
+PARAMS = f"""localparam AMP_SWEEP_LEN   = {amp_sweep_len};
+localparam WIDTH_SWEEP_LEN = {width_sweep_len};
+localparam RESULT_WIDTH    = 16;\n
 """
+print("[INFO] Check if RESULT_WIDTH is set properly (it's hardcoded, line 89)")
 
-WAVE_TYPEDEF             = "typedef logic [IN_WIDTH-1:0] wave_t [0:PULSE_SAMPLES-1];\n"
-THRESHOLD_TYPEDEF        = "typedef logic                threshold_t [0:PULSE_SAMPLES-1];\n"
-WIDH_SWEEP_WAVE_ARR      = f'wave_t      amplitude_sweep_waves      [0:AMP_SWEEP_LEN-1];\n'
-WIDH_SWEEP_TH_ARR        = f'threshold_t amplitude_sweep_thresholds [0:AMP_SWEEP_LEN-1];\n'
-AMPLITUDE_SWEEP_WAVE_ARR = f'wave_t      width_sweep_waves          [0:WIDTH_SWEEP_LEN-1];\n'
-AMPLITUDE_SWEEP_TH_ARR   = f'threshold_t width_sweep_thresholds     [0:WIDTH_SWEEP_LEN-1];\n'
+WAVE_TYPEDEF                = "typedef logic [IN_WIDTH-1:0]     wave_t [0:PULSE_SAMPLES-1];\n"
+THRESHOLD_TYPEDEF           = "typedef logic                    threshold_t [0:PULSE_SAMPLES-1];\n"
+RESULTS_TYPEDEF             = "typedef logic [RESULT_WIDTH-1:0] result_t;\n"
+
+WIDH_SWEEP_WAVE_ARR         = f'wave_t      amplitude_sweep_waves      [0:AMP_SWEEP_LEN-1];\n'
+WIDH_SWEEP_TH_ARR           = f'threshold_t amplitude_sweep_thresholds [0:AMP_SWEEP_LEN-1];\n'
+AMPLITUDE_SWEEP_RESULTS_ARR = f'result_t    amplitude_sweep_results    [0:AMP_SWEEP_LEN-1];\n'
+
+AMPLITUDE_SWEEP_WAVE_ARR    = f'wave_t      width_sweep_waves          [0:WIDTH_SWEEP_LEN-1];\n'
+AMPLITUDE_SWEEP_TH_ARR      = f'threshold_t width_sweep_thresholds     [0:WIDTH_SWEEP_LEN-1];\n'
 
 amplitude_waves_names = []
-width_waves_names = []
+width_waves_names     = []
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # CREATE TYPEDEFS
@@ -98,21 +112,27 @@ tv_file.write(FILE_START)
 tv_file.write(PARAMS)
 tv_file.write(WAVE_TYPEDEF)
 tv_file.write(THRESHOLD_TYPEDEF)
+tv_file.write(RESULTS_TYPEDEF)
 tv_file.write("\n")
 tv_file.write(WIDH_SWEEP_WAVE_ARR)
 tv_file.write(WIDH_SWEEP_TH_ARR)
 tv_file.write(AMPLITUDE_SWEEP_WAVE_ARR)
 tv_file.write(AMPLITUDE_SWEEP_TH_ARR)
+tv_file.write(AMPLITUDE_SWEEP_RESULTS_ARR)
 tv_file.write("\n")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # CREATE ARRAYS
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# crate named arrays to store values from each file
+# next step is to assign those 2D arrays to one 3D array
 tv_file.write(AMP_FILES_COMMENT1)
 for filename in wave_amp_files:
     tv_file.write(f'logic [IN_WIDTH-1:0] {filename}wave_arr [0:PULSE_SAMPLES-1];\n')
 for filename in th_amp_files:
     tv_file.write(f'logic {filename}th_arr [0:PULSE_SAMPLES-1];\n')
+for filename in result_amp_files:
+    tv_file.write(f'logic [RESULT_WIDTH-1:0] {filename}result_arr [0:1];\n')
 tv_file.write(TH_FILES_COMMENT1)
 for filename in wave_width_files:
     tv_file.write(f'logic [IN_WIDTH-1:0] {filename}wave_arr [0:PULSE_SAMPLES-1];\n')
@@ -143,14 +163,17 @@ tv_file.write(f'amp_testname_t amp_testname = {wave_amp_files[0]};\n\n')
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# LOAD DATA FROM FILES TO ARRAYS
+# LOAD DATA FROM FILES TO ARRAYS - $readmemh
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 tv_file.write(INITIAL_START)
 tv_file.write(AMP_FILES_COMMENT2)
+# read each file using $readmemh and store it in named array
 for filename in wave_amp_files:
     tv_file.write(f'  $readmemh("{ABSOLUTE_PATH}{filename}.txt", {filename}wave_arr );\n')
 for filename in th_amp_files:
     tv_file.write(f'  $readmemh("{ABSOLUTE_PATH}{filename}.txt", {filename}th_arr);\n')
+for filename in result_amp_files:
+    tv_file.write(f'  $readmemh("{ABSOLUTE_PATH}{filename}.txt", {filename}result_arr);\n')
 tv_file.write(TH_FILES_COMMENT2)
 for filename in wave_width_files:
     tv_file.write(f'  $readmemh("{ABSOLUTE_PATH}{filename}.txt", {filename}wave_arr );\n')
@@ -160,18 +183,28 @@ tv_file.write(INITIAL_END)
 
 tv_file.write("\n")
 tv_file.write(INITIAL_START)
+# store each named array in one bigger array
 i = 0
 for filename in wave_amp_files:
     tv_file.write(f'amplitude_sweep_waves[{i}] = {filename}wave_arr;\n')
     i = i + 1
+
 i = 0
 for filename in th_amp_files:
     tv_file.write(f'amplitude_sweep_thresholds[{i}] = {filename}th_arr;\n')
     i = i + 1
+
+i = 0
+for filename in result_amp_files:
+    #tv_file.write(f'amplitude_sweep_results[{i}] = {{ << {{ {filename}result_arr}}}}; // cast from unpacked to packed array\n')
+    tv_file.write(f'amplitude_sweep_results[{i}] = {filename}result_arr[0];\n')
+    i = i + 1
+
 i = 0
 for filename in wave_width_files:
     tv_file.write(f'width_sweep_waves[{i}] = {filename}wave_arr;\n')
     i = i + 1
+    
 i = 0
 for filename in th_width_files:
     tv_file.write(f'width_sweep_thresholds[{i}] = {filename}th_arr;\n')
