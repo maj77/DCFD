@@ -3,7 +3,7 @@ Implementation of digital constant fraction discriminator on FPGA. \
 NOTE: this project is still in development and a lot can change!
 
 ## Block Diagram 
-![image](https://github.com/maj77/DCFD/blob/man/CFD_+_interpolator.drawio.svg](https://github.com/maj77/DCFD/blob/main/CFD_top.svg)
+![image](https://github.com/maj77/DCFD/blob/experiment/CFD_top.svg)
 
 
 ## Modules used in design:
