@@ -20,7 +20,7 @@ parameter PIPE_DLY        = 142; // delay of 120 samples, new sample every 1 cfd
 parameter PULSE_SAMPLES   = 2201; //801; //32;
 parameter CLK_HALF_T      = 5; // ns
 parameter CLK_SER_HALF_T  = 1.67;
-parameter ADC_PERIOD_NS   = 100;
+parameter ADC_PERIOD_NS   = 16;
 // parameter AMP_SWEEP_LEN   = 6;
 // parameter WIDTH_SWEEP_LEN = 40;
 

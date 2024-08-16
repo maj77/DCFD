@@ -8,16 +8,17 @@
 // Project Name       : Constant Fraction Discriminator
 // Target Devices     : temporary for zedboard but final target device is ultrascale
 // Tool Versions      : vivado 2018.3
-// Additional Comments: First version uses comparator at its output, 
-//                      next step is to implement linear interpolation
+// Additional Comments: 4dasquaw
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module cfd #( IN_WIDTH      = 12,
-              PIPE_DLY      = 10,
-              ADC_PERIOD_NS = 100
+module cfd #( IN_WIDTH        = 12,
+              PIPE_DLY        = 10,
+              ADC_PERIOD_NS   = 100, // TODO: LHC_PERIOD_NS SHOULD BE MUCH MUCH HIGHER THAN ADC_PERIOD_NS
+              LHC_PERIOD_NS   = 25,
+              T_GATE_DELAY_NS = 2.5
            )( input  logic                clk              ,
-              input  logic                clk_ser          , // clock used for serializer 3x base clock speed
+              input  logic                time_start       ,
               input  logic                sample_vld_in    ,
               input  logic                th_passthrough_in,
               input  logic                rst_p            ,
@@ -41,14 +42,12 @@ localparam CFD_TOP_PIPELINE_WIDTH = 4;
 logic [    IN_WIDTH-1:0] input_reg    ;
 logic [    IN_WIDTH-1:0] sample_d     ;
 logic [SCALED_WIDTH-1:0] sample_d_reg ;
-logic [SCALED_WIDTH-1:0] sample_d_mux ;
 logic [SCALED_WIDTH-1:0] scaled_sample;
 
 logic signed [ZC_IN_WIDTH-1:0] sub_result       ;
 logic signed [ZC_IN_WIDTH-1:0] sub2_result      ;
 logic signed [ZC_IN_WIDTH-1:0] sub_result_d     ;
 logic signed [ZC_IN_WIDTH-1:0] sub_result_temp  ;
-logic signed [ZC_IN_WIDTH-1:0] sub_result_avg   ;
 logic signed [ZC_IN_WIDTH-1:0] zc_sample_in[1:0];
 
 logic signed [ZC_IN_WIDTH+4-1:0] sub_result_mavg;
@@ -91,8 +90,8 @@ always_ff @(posedge clk) begin
   end
 end
 
-pipe_dly #( .DATA_WIDTH (IN_WIDTH  ),
-            .DELAY      (PIPE_DLY-1)
+pipe_dly #( .DATA_WIDTH (IN_WIDTH ),
+            .DELAY      (PIPE_DLY) // PIPE_DLY-1 because there is additional reg after delay module
 )i_cfd_pipe_dly(
             .clk   (clk      ),
             .rst_p (rst_p    ),
@@ -103,8 +102,8 @@ pipe_dly #( .DATA_WIDTH (IN_WIDTH  ),
           );
 
 logic [1:0] passthrough_vld_unused;
-pipe_dly #( .DATA_WIDTH (IN_WIDTH  ),
-            .DELAY      (PIPE_DLY-1)
+pipe_dly #( .DATA_WIDTH (IN_WIDTH),
+            .DELAY      (PIPE_DLY+1) 
 )i_passthrough_samp_pipe_dly(
             .clk   (clk                       ),
             .rst_p (rst_p                     ),
@@ -114,8 +113,8 @@ pipe_dly #( .DATA_WIDTH (IN_WIDTH  ),
             .vld_o (passthrough_vld_unused[0] )
           );
 
-pipe_dly #( .DATA_WIDTH (1         ),
-            .DELAY      (PIPE_DLY-1)
+pipe_dly #( .DATA_WIDTH (1       ),
+            .DELAY      (PIPE_DLY+1)
 )i_passthrough_th_pipe_dly(
             .clk   (clk                      ),
             .rst_p (rst_p                    ),
@@ -153,8 +152,8 @@ always_ff @(posedge clk) begin
     end
 end
 
-assign sub_result_avg = (sub2_result - sub_result_d) >>> 1;
-
+//////////////////////////////////////////////////////////////////////////////////////////////
+// UNUSED LOGIC - MOVING AVERAGE
 moving_average #(
     .DATA_WIDTH (ZC_IN_WIDTH),
     .NO_AVG_SAMP(16          )
@@ -181,6 +180,8 @@ always_comb begin
         m_avg_zero_cross = 1'b0;
     end
 end
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 
 // delay samples for zc module (could be optimized by 1 flop)
 // delay passthroughs
