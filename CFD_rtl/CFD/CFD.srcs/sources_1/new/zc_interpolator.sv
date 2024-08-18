@@ -69,18 +69,13 @@ logic [    MULT_2_WIDTH-1:0] mult_2_result; // Q(0.15.14)
 logic [MULT_2_SAT_WIDTH-1:0] mult_2_sat;    // probably Q(0.8.19), needs to be double checked
 logic [         OUT_WIDTH:0] result_rnd;    // probably: [Q(0.9.8), additional 1 MSB for handling rounding overflow], needs to be double checked
 
+logic [  LUT_ADDR_WIDTH:0] samp_sum;
+logic [LUT_ADDR_WIDTH-1:0] lut_addr;
+
 logic zero_cross_pulse;
 logic zero_cross_pulse_d;
 
-struct {
-    logic [RAW_IN_WIDTH-1:0] input_reg;
-    logic [RAW_IN_WIDTH-1:0] output_reg;
-} data_passthrough;
 
-struct {
-    logic input_reg=0;
-    logic output_reg=0;
-} th_passthrough;
 //
 // initial ABS calc
 //
@@ -94,22 +89,15 @@ assign T_adc = ADC_PERIOD_NS; // Q(0.7.0)
 always_ff @(posedge clk) begin : mult_1_ff
   if (rst_p) begin
     mult_1_result              <= '{default:0};
-    data_passthrough.input_reg <= '{default:0};
-    th_passthrough.input_reg   <= '{default:0};
   end else begin
     // [IMPORTANT] if derivative of input wave is negative around zero then older samp should be in numerator, otherwise newer sample 
     mult_1_result              <= T_adc * samp_0_abs; // Q(0.19.12)
-    data_passthrough.input_reg <= passthrough_in;
-    th_passthrough.input_reg   <= th_passthrough_in;
   end
 end
 
-// sat 11 bits
-//        [19:0]            [30:0]            [30:20]                         [19:0]
+// saturate
 assign mult_1_sat = |mult_1_result[MULT_1_WIDTH-1:MULT_1_SAT_WIDTH] ? '1 : mult_1_result[MULT_1_SAT_WIDTH-1:0]; // Q(0.8.12)
-
-// truncate 4 LSB's
-//                                    [20-1:20-16] -> [19:4]
+// truncate LSB's
 assign mult_1_scaled = mult_1_sat[MULT_1_SAT_WIDTH-1:MULT_1_SAT_WIDTH-MULT_1_SCALED_WIDTH]; // Q(0.8.8) 
 
 //
@@ -117,10 +105,6 @@ assign mult_1_scaled = mult_1_sat[MULT_1_SAT_WIDTH-1:MULT_1_SAT_WIDTH-MULT_1_SCA
 //
 assign addr0_sat = |samp_0_abs[ABS_IN_WIDTH-1:SAT_ADDR_WIDTH] ? '1 : samp_0_abs[SAT_ADDR_WIDTH-1:0]; // Q(0.6.12)
 assign addr1_sat = |samp_1_abs[ABS_IN_WIDTH-1:SAT_ADDR_WIDTH] ? '1 : samp_1_abs[SAT_ADDR_WIDTH-1:0]; // Q(0.6.12)
-
-
-logic [  LUT_ADDR_WIDTH:0] samp_sum;
-logic [LUT_ADDR_WIDTH-1:0] lut_addr;
 
 always_comb begin : round_addr_c
   // [WARNING] no overflow handling
@@ -150,32 +134,16 @@ LUT #(
 always_ff @(posedge clk) begin : mult_2_ff
   if (rst_p) begin
     mult_2_result               <=  '{default:0};
-    data_passthrough.output_reg <=  '{default:0};
-    th_passthrough.output_reg   <=  '{default:0};
   end else begin
     mult_2_result               <= lut_data*mult_1_scaled; // on block diagram this flip flop is after rounding Q(0.15.14)
-    data_passthrough.output_reg <= data_passthrough.input_reg;
-    th_passthrough.output_reg   <= th_passthrough.input_reg;
   end
 end
 
-assign passthrough_out    = data_passthrough.output_reg;
-assign th_passthrough_out = th_passthrough.output_reg;
-
-// sat 5 MSB's
-//       [22:0]          [28:0]         [29-1:22]->[28:22]                               [22-1:0]->[21:0]
-//                                       saturate top 5 bits, convert from Q(0.15.13) to Q(0.10.13)
-//                                   now it should be [27:21], converto from Q(0.15.13) to Q(0.8.13)
+// saturate
 assign mult_2_sat = |mult_2_result[MULT_2_WIDTH-1:MULT_2_SAT_WIDTH] ? '1 : mult_2_result[MULT_2_SAT_WIDTH-1:0]; // Q(0.8.14)
-// round to 8 bits fract
-//        [16:0]        [22:0]                [23-1:23-16]->[22:7]              +            [23-16-1]->[6]
-//                                                     round to 8th bit, convert from Q(0.10.13) to Q(0.10.6)
-
-//      [16:0]                        [22-1:22-16]->[21:6]               +       [22-16-1]->[5]
+// round
 assign result_rnd = mult_2_sat[MULT_2_SAT_WIDTH-1:MULT_2_SAT_WIDTH-OUT_WIDTH] + mult_2_sat[MULT_2_SAT_WIDTH-OUT_WIDTH-1]; // Q(0.9.8)
-
 // handle rounding overflow
-//     [15:0]
 assign result = result_rnd[OUT_WIDTH] ? '1 : result_rnd[OUT_WIDTH-1:0]; // Q(0.8.8)
 
 //

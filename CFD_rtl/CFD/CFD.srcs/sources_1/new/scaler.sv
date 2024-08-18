@@ -11,23 +11,22 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module scaler #( SCALE_FACTOR = 12'b1100_1100_1101    , // default scaling by 0.8
-                 IN_WIDTH     = 32                    , // a = Q(0.n.m)
-                 SCALE_WIDTH  = $bits(SCALE_FACTOR)   , // b = Q(0.p.q)
+module scaler #( IN_WIDTH     = 32                    , // a = Q(0.n.m)
+                 SCALE_WIDTH  = 12                    , // b = Q(0.p.q)
                  OUTPUT_WIDTH = IN_WIDTH + SCALE_WIDTH  // c = a*b = Q(0.n+p,m+q)
               )(
                  input  logic                    clk,
                  input  logic                    rst_p,
                  input  logic [    IN_WIDTH-1:0] data_i,
+                 input  logic [ SCALE_WIDTH-1:0] sf_in ,
                  output logic [OUTPUT_WIDTH-1:0] data_o
               );
 
-logic [SCALE_WIDTH-1:0] sf;
+logic [ SCALE_WIDTH-1:0] sf;
 logic [OUTPUT_WIDTH-1:0] scaled_sample;
-logic [IN_WIDTH-1:0] sample;
+logic [    IN_WIDTH-1:0] sample;
 
-assign sf = SCALE_FACTOR;
-//assign sample = {data_i, {SCALE_WIDTH{1'b0}}}; 
+assign sf     = sf_in;
 assign sample = data_i;
 
 always_ff @(posedge clk) begin

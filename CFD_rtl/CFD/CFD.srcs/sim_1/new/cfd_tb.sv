@@ -15,42 +15,49 @@ module cfd_tb();
 // params below included from helpers.vh
 //localparam IN_WIDTH      = 16;
 //localparam PIPE_DLY      = 120;
-//localparam PULSE_SAMPLES = 2201; //801; //32;
+//localparam PULSE_SAMPLES = 2201;
 //localparam CLK_HALF_T    = 5;
 //localparam ADC_PERIOD_NS = 100;
+//localparam SCALE_FACTOR_WIDTH = 12;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CFD CONNECTIONS
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-logic                clk                              ;
-logic                clk_ser                          ;
-logic                rst_p                            ;
-// logic [IN_WIDTH-1:0] in_pulse_arr  [PULSE_SAMPLES-1:0];
-// logic [IN_WIDTH-1:0] threshold_arr [PULSE_SAMPLES-1:0];
-logic [IN_WIDTH-1:0] data_in                          ;
-logic                pulse_out                        ;
-logic                data_vld_in                      ;
-
+logic                          clk         ;
+logic                          clk_ser     ;
+logic                          rst_p       ;
+logic [          IN_WIDTH-1:0] data_in     ;
+logic                          pulse_out   ;
+logic                          data_vld_in ;
+logic [SCALE_FACTOR_WIDTH-1:0] scale_factor;
+logic [16-1:0] cfd_result;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // TESTBENCH SIGNALS
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-logic [IN_WIDTH-1:0] max_arr_val;
-logic [IN_WIDTH-1:0] max_val_arr_idx;
-int                  scaled_val_idx;
-logic                th_matlab_samp_inserted; // threshold sample from matlab
-logic                th_verilog_samp_inserted; // threshold sample calculated in verilog tb, val=0.8*wave_max_amplitude
+// signals used in passing input data to cfd
+bit     th_matlab_samp_inserted; // threshold sample from matlab
+int     wave_no=0;               // carefull with it, it's global variable!
+event   amp_test_end;
 
+// signals for threshold pulse comparision
+bit     cfd_zc;
+bit     passth_zc;
+integer zc_diff_clks = 0;
+integer zc_diff_clks_arr[$];
 
-// `include "helpers.vh"
-
-
+// signals for result comparision
+logic signed [cfd_uut.ZC_OUT_WIDTH-1:0] amp_sweep_rtl_results [AMP_SWEEP_LEN-1:0]; // RTL results are in Q(0.8.8) format for now
+logic signed [  cfd_uut.ZC_OUT_WIDTH:0] result_diff_arr       [AMP_SWEEP_LEN-1:0];
+logic signed [  cfd_uut.ZC_OUT_WIDTH:0] result_diff;
+logic        [cfd_uut.ZC_OUT_WIDTH-1:0] rtl_result; 
+logic        [cfd_uut.ZC_OUT_WIDTH-1:0] matlab_result;
+integer failed_wave_nums [$];
+localparam MATLAB_OUT_FRACT = 8;
+localparam MATLAB_OUT_INT   = 8;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // LOAD TEST VECTORS - deprecated
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// vivado executes from different location than source files 
-// string path     = "D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/python_scripts/TV/PROCESSED_TV/amplitude_1_.txt";
-// string path_th  = "D:/Studia_EiT/Magisterskie/Praca_Magisterska/DCFD/python_scripts/TV/PROCESSED_TV/amplitude_1_threshold_sample_.txt";
-
+/* test vectors loaded in test_vectors.vh file */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // GENERATE CLOCK & RESET
@@ -65,12 +72,9 @@ initial begin
   #20 rst_p = 1'b0;
 end
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // FEED WAVES
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int wave_no=0;
-event amp_test_end;
 initial begin : feed_samples
   int sample_no;
   //--------------------------------------------------------------------------------------------------------------------
@@ -84,7 +88,11 @@ initial begin : feed_samples
   $display("       ADC_PERIOD_NS = %d", ADC_PERIOD_NS);
 
   @(negedge rst_p);
+  // set scale factor to 0.8 in Q(0.0.12)
+  scale_factor = 12'b1100_1100_1101;
+
   repeat(20) @(posedge clk); // allign to rising edges of clock
+  
   for(wave_no=0; wave_no<AMP_SWEEP_LEN; wave_no=wave_no+1) begin : feed_amp_samples
     $display("[INFO] @%f Passing amplitude sweep wave: %s, wave no: %d", $realtime, amp_testname.name, wave_no);
     for(sample_no=0; sample_no<PULSE_SAMPLES; sample_no=sample_no+1) begin
@@ -94,8 +102,7 @@ initial begin : feed_samples
         $stop();
       end
       th_matlab_samp_inserted   = amplitude_sweep_thresholds[wave_no][sample_no]; 
-      #(2*CLK_HALF_T);
-      #(15*2*CLK_HALF_T); // pass new sample every 16 fpga clocks
+      #(FPGA_CLOCKS_PER_SAMPLE*2*CLK_HALF_T);
     end
     amp_testname = amp_testname.next;
     // $stop();
@@ -130,10 +137,6 @@ end
 // CHECK ZERO-CROSS PULSE
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //TODO: wrap it into task
-bit cfd_zc;
-bit passth_zc;
-integer zc_diff_clks = 0;
-integer zc_diff_clks_arr[$];
 always @(posedge pulse_out) begin : catch_cfd_zc_vld
   cfd_zc = 1;
   // $display("[DEBUG] pulse_out posedge event at %f [ns]", $realtime());
@@ -182,16 +185,6 @@ end
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // COMPARE RESULT
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-logic signed [cfd_uut.ZC_OUT_WIDTH-1:0] amp_sweep_rtl_results [AMP_SWEEP_LEN-1:0]; // RTL results are in Q(0.8.8) format for now
-logic signed [  cfd_uut.ZC_OUT_WIDTH:0] result_diff_arr       [AMP_SWEEP_LEN-1:0];
-logic signed [  cfd_uut.ZC_OUT_WIDTH:0] result_diff;
-logic        [cfd_uut.ZC_OUT_WIDTH-1:0] rtl_result; 
-logic        [cfd_uut.ZC_OUT_WIDTH-1:0] matlab_result;
-// logic signed [cfd_uut.ZC_OUT_WIDTH-1:0] 
-integer failed_wave_nums [$];
-
-localparam MATLAB_OUT_FRACT = 8;
-localparam MATLAB_OUT_INT   = 8;
 // compare results from matlab against rtl results
 // [13.08.24] INFO: Matlab samples are in Q(0.8.8) format
 //                  RTL samples are in Q(0.8.8) format
@@ -255,14 +248,14 @@ cfd #( .IN_WIDTH     (IN_WIDTH     ),
 )cfd_uut(
        .clk               (clk           ),
        .rst_p             (rst_p         ),
-       .time_start        (1'bz          ),
+       .trigger           (1'bz          ),
        .th_passthrough_in (th_matlab_samp_inserted),
        .sample_vld_in     (data_vld_in   ),
+       .sf                (scale_factor  ),
        .sample_in         (data_in       ),
        .pulse_out         (pulse_out     ),
+       .data_out          (cfd_result    ),
        .th_passthrough_out_vld(th_passthrough_out_vld)
     );
 
 endmodule
-
-
