@@ -13,7 +13,8 @@
 
 
 module passthrough #(
-    DATA_WIDTH=12         
+    DATA_WIDTH=12,
+    PIPE_DLY=142         
 )(
     input  logic                  clk                 ,
     input  logic                  rst_p               ,
@@ -25,10 +26,10 @@ module passthrough #(
 
 // scale_and_delay module passthrough
 struct {
-    logic [IN_WIDTH-1:0] input_reg;
-    logic [IN_WIDTH-1:0] dly_reg;
-    logic [IN_WIDTH-1:0] interp_input_reg;
-    logic [IN_WIDTH-1:0] interp_out_reg;
+    logic [DATA_WIDTH-1:0] input_reg;
+    logic [DATA_WIDTH-1:0] dly_reg;
+    logic [DATA_WIDTH-1:0] interp_input_reg;
+    logic [DATA_WIDTH-1:0] interp_out_reg;
 } SD_data_passthrough; // input data samples passhthrough
 
 struct {
@@ -40,8 +41,8 @@ struct {
 
 // zc_interp module passthrough
 struct {
-    logic [IN_WIDTH-1:0] input_reg;
-    logic [IN_WIDTH-1:0] output_reg;
+    logic [DATA_WIDTH-1:0] input_reg;
+    logic [DATA_WIDTH-1:0] output_reg;
 } zc_data_passthrough;
 
 struct {
@@ -49,11 +50,13 @@ struct {
     logic output_reg=0;
 } zc_th_passthrough;
 
+logic                  th_out_reg;
+logic [DATA_WIDTH-1:0] result_out_reg;
 
 always_ff @(posedge clk) begin : scale_delay_passthrough_input_ff
   if(rst_p) begin
-    SD_th_passthrough   <= '{default:0};
-    SD_data_passthrough <= '{default:0};
+    SD_th_passthrough.input_reg <= '0; //'{default:0};
+    SD_data_passthrough.input_reg <= '0; //'{default:0};
   end else begin
     SD_data_passthrough.input_reg <= passth_data_in;
     SD_th_passthrough.input_reg   <= passth_th_sample_in;
@@ -61,7 +64,7 @@ always_ff @(posedge clk) begin : scale_delay_passthrough_input_ff
 end
 
 logic [1:0] passthrough_vld_unused;
-pipe_dly #( .DATA_WIDTH (IN_WIDTH),
+pipe_dly #( .DATA_WIDTH (DATA_WIDTH),
             .DELAY      (PIPE_DLY+1) 
 )i_passthrough_samp_pipe_dly(
             .clk   (clk                       ),
@@ -86,8 +89,8 @@ pipe_dly #( .DATA_WIDTH (1       ),
 // scale_and_delay passthroughs
 always_ff @(posedge clk) begin : scale_delay_output_ff
   if(rst_p) begin
-    SD_data_passthrough.interp_input_reg <= '{default:0};
-    SD_th_passthrough.interp_input_reg   <= '{default:0};
+    SD_data_passthrough.interp_input_reg <= '0;
+    SD_th_passthrough.interp_input_reg   <= '0;
   end else begin
     SD_data_passthrough.interp_input_reg <= SD_data_passthrough.dly_reg;
     SD_th_passthrough.interp_input_reg   <= SD_th_passthrough.dly_reg;
@@ -96,8 +99,8 @@ end
 
 always_ff @(posedge clk) begin : zc_interp_input_ff
   if (rst_p) begin
-    zc_data_passthrough.input_reg <= '{default:0};
-    zc_th_passthrough.input_reg   <= '{default:0};
+    zc_data_passthrough.input_reg <= '0;
+    zc_th_passthrough.input_reg   <= '0;
   end else begin
     zc_data_passthrough.input_reg <= SD_data_passthrough.interp_input_reg;
     zc_th_passthrough.input_reg   <= SD_th_passthrough.interp_input_reg;
@@ -106,15 +109,25 @@ end
 
 always_ff @(posedge clk) begin : zc_interp_output_ff
   if (rst_p) begin
-    zc_data_passthrough.output_reg <=  '{default:0};
-    zc_th_passthrough.output_reg   <=  '{default:0};
+    zc_data_passthrough.output_reg <= '0;
+    zc_th_passthrough.output_reg   <= '0;
   end else begin
     zc_data_passthrough.output_reg <= zc_data_passthrough.input_reg;
     zc_th_passthrough.output_reg   <= zc_th_passthrough.input_reg;
   end
 end
 
-assign passth_data_out      = zc_data_passthrough.output_reg;
-assign passth_th_sample_out = zc_th_passthrough.output_reg;
+always_ff @(posedge clk) begin : output_ff
+  if (rst_p) begin
+    th_out_reg     <= '0;
+    result_out_reg <= '0;
+  end else begin
+    th_out_reg     <= zc_th_passthrough.output_reg;
+    result_out_reg <= zc_data_passthrough.output_reg;
+  end
+end
+
+assign passth_data_out      = result_out_reg;
+assign passth_th_sample_out = th_out_reg;
 
 endmodule

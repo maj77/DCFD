@@ -20,8 +20,20 @@ module LUT #(
   output logic  [DATA_WIDTH-1:0] data_o
 );
 
+logic [ADDR_WIDTH-1:0] address_r;
+
 always_ff @(posedge clk) begin
-	case(address)
+	if (rst_p) begin
+		address_r <= '0;
+	end else begin
+		address_r <= address;
+	end
+end
+
+always_comb begin
+	case(address_r) 
+// always_ff @(posedge clk) begin
+	// case(address)
 		12'b000000000001 : data_o <= 13'h1000;
 		12'b000000000010 : data_o <= 13'h0800;
 		12'b000000000011 : data_o <= 13'h0555;
@@ -4117,6 +4129,7 @@ always_ff @(posedge clk) begin
 		12'b111111111101 : data_o <= 13'h0001;
 		12'b111111111110 : data_o <= 13'h0001;
 		12'b111111111111 : data_o <= 13'h0001;
+		default          : data_o <= 13'hDEAD;
 	endcase
 end
 endmodule

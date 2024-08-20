@@ -28,7 +28,6 @@ logic                          clk_ser     ;
 logic                          rst_p       ;
 logic [          IN_WIDTH-1:0] data_in     ;
 logic                          pulse_out   ;
-logic                          data_vld_in ;
 logic [SCALE_FACTOR_WIDTH-1:0] scale_factor;
 logic [16-1:0] cfd_result;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,6 +37,7 @@ logic [16-1:0] cfd_result;
 bit     th_matlab_samp_inserted; // threshold sample from matlab
 int     wave_no=0;               // carefull with it, it's global variable!
 event   amp_test_end;
+bit     trigger_in;
 
 // signals for threshold pulse comparision
 bit     cfd_zc;
@@ -77,6 +77,9 @@ end
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 initial begin : feed_samples
   int sample_no;
+  // WARNING! DRUCIARSTWO, TODO: wrap it into functions
+
+
   //--------------------------------------------------------------------------------------------------------------------
   // AMPLITUDE SWEEP WAVES
   //--------------------------------------------------------------------------------------------------------------------
@@ -90,11 +93,10 @@ initial begin : feed_samples
   @(negedge rst_p);
   // set scale factor to 0.8 in Q(0.0.12)
   scale_factor = 12'b1100_1100_1101;
-
   repeat(20) @(posedge clk); // allign to rising edges of clock
-  
   for(wave_no=0; wave_no<AMP_SWEEP_LEN; wave_no=wave_no+1) begin : feed_amp_samples
     $display("[INFO] @%f Passing amplitude sweep wave: %s, wave no: %d", $realtime, amp_testname.name, wave_no);
+    trigger_in = 1'b1;
     for(sample_no=0; sample_no<PULSE_SAMPLES; sample_no=sample_no+1) begin
       data_in                   = amplitude_sweep_waves[wave_no][sample_no];
       if ($isunknown(data_in)) begin // IEEE Std 1800-2017 function
@@ -103,7 +105,9 @@ initial begin : feed_samples
       end
       th_matlab_samp_inserted   = amplitude_sweep_thresholds[wave_no][sample_no]; 
       #(FPGA_CLOCKS_PER_SAMPLE*2*CLK_HALF_T);
+      trigger_in = 1'b0;
     end
+    // #(100*2*CLK_HALF_T);
     amp_testname = amp_testname.next;
     // $stop();
   end
@@ -248,9 +252,8 @@ cfd #( .IN_WIDTH     (IN_WIDTH     ),
 )cfd_uut(
        .clk               (clk           ),
        .rst_p             (rst_p         ),
-       .trigger           (1'bz          ),
+       .trigger           (trigger_in    ),
        .th_passthrough_in (th_matlab_samp_inserted),
-       .sample_vld_in     (data_vld_in   ),
        .sf                (scale_factor  ),
        .sample_in         (data_in       ),
        .pulse_out         (pulse_out     ),
