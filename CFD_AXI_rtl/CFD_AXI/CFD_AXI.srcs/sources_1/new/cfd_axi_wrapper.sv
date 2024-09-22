@@ -122,10 +122,10 @@
     assign scale_factor = 12'b1100_1100_1101; // 0.8
     // assign scale_factor = 12'b0011_0011_0011; // 0.2
 
-    cfd #( .IN_WIDTH                 (CFD_IN_WIDTH              ),
-           .OUT_WIDTH                (CFD_RESULT_WIDTH          ),
-              .PIPE_DLY              (CFD_PIPE_DLY              ),
-              .FPGA_CLOCKS_PER_SAMPLE(CFD_FPGA_CLOCKS_PER_SAMPLE)
+    cfd #( .IN_WIDTH              (CFD_IN_WIDTH              ),
+           .OUT_WIDTH             (CFD_RESULT_WIDTH          ),
+           .PIPE_DLY              (CFD_PIPE_DLY              ),
+           .FPGA_CLOCKS_PER_SAMPLE(CFD_FPGA_CLOCKS_PER_SAMPLE)
     )cfd_i(
            .clk                   (s00_axis_aclk    ),
            .rst_p                 (~s00_axis_aresetn),
