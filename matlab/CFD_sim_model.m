@@ -10,12 +10,12 @@ clc; clear; close all;
 %  for now you have to load testv from gaussian_pulse_generator.m
 
 %% Initialize variables
-T              = 16;
+T              = 1;
 T_width        = 7; %ceil(log2(T))+1;
 lut_in_width   = 12;
 lut_in_fract   = 6;
-lut_out_width  = 7+6;
-lut_out_fract  = 6;
+lut_out_width  = 7+13;
+lut_out_fract  = 13;
 samp_in_width  = 25; %zc module 
 samp_in_fract  = 12; %zc module
 samp_in_signed = 1;
@@ -88,7 +88,7 @@ plot(wave_sub_signed(7,:))
 %%
 clc
 DEBUG_EN = 1;
-wave_no  = 4; % same as in verilog testbench
+wave_no  = 7; % same as in verilog testbench, in wave name wave number is written as wave_no+1
 [clocks_temp, clocks_temp_fxp, ~] = zero_cross(wave_sub_signed(wave_no+1,:), T, T_width, samp_in_signed, samp_in_width, ...
                             samp_in_fract, lut_out_width, lut_out_fract, ...
                             out_width, out_fract, out_int, DEBUG_EN);
@@ -101,10 +101,10 @@ no_of_samples = size(wave_in,2);
 t = 0:10:(no_of_samples-1)*10; % every sample each 10 ns
 
 plot(t, wave_zero);
-plot(t, wave_in, "k",'MarkerSize',20);
-plot(t, wave_delayed_signed, "r",'MarkerSize',10);
-plot(t, wave_scaled_signed, "b");
-plot(t, wave_sub_signed, "go");
+plot(t, wave_in(5,:), "k",'MarkerSize',20);
+plot(t, wave_delayed_signed(5,:), "r",'MarkerSize',10);
+plot(t, wave_scaled_signed(5,:), "b");
+plot(t, wave_sub_signed(5,:), "go");
 %plot(t, wave_sub2, "ro");
 legend("zero level", "original wave", "Delayed wave","Scaled wave", "subtraction wave");
 

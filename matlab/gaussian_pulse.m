@@ -4,9 +4,9 @@ function [pulse_fp, pulse_fxp] = gaussian_pulse(amplitude, width_coeff, x, ...
 %   x           - time domain samples
 %   amplitude   - amplitude of pulse
 %   width_coeff - width coefficient (should be positive value), 
-%                 pulse gets wider when coefficient gets smaller
+%                 pulse gets wider when coefficient gets smaller - CONST
 
-pulse_fp = amplitude.*exp(-width_coeff.*x.^2);
+pulse_fp  = amplitude.*exp(-width_coeff.*x.^2);
 pulse_fxp = fi(pulse_fp, 0, width, frac);
 
 end

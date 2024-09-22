@@ -23,6 +23,8 @@ wave_internal = wave;
 negative_sample = 0; % a1 in rtl
 positive_sample = 0; % a2 in rtl
 
+
+
 neg_sample_idx = 0;
 pos_sample_idx = 0;
 % search for two samples with opposite sign samples
