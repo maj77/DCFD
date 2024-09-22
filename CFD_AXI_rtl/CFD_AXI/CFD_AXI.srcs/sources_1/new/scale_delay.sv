@@ -18,12 +18,13 @@ module scale_delay #(
         SCALE_FACTOR_WIDTH = 12    ,
         OUT_WIDTH          = IN_WIDTH + SCALE_FACTOR_WIDTH + 1
     )(
-        input  logic                          clk         ,
-        input  logic                          rst_p       ,
-        input  logic [SCALE_FACTOR_WIDTH-1:0] sf          ,
-        input  logic [          IN_WIDTH-1:0] sample_in   ,
-        output logic [         OUT_WIDTH-1:0] sample_0_out, // neg_sample in matlab
-        output logic [         OUT_WIDTH-1:0] sample_1_out  // pos_sample in matalb
+        input  logic                          clk          ,
+        input  logic                          rst_p        ,
+        input  logic [SCALE_FACTOR_WIDTH-1:0] sf           ,
+        input  logic [          IN_WIDTH-1:0] sample_in    ,
+        input  logic                          sample_in_vld,
+        output logic [         OUT_WIDTH-1:0] sample_0_out , // neg_sample in matlab
+        output logic [         OUT_WIDTH-1:0] sample_1_out   // pos_sample in matalb
     );
 
 localparam SCALED_WIDTH = SCALE_FACTOR_WIDTH + IN_WIDTH;
@@ -52,12 +53,12 @@ end
 pipe_dly #( .DATA_WIDTH (IN_WIDTH),
             .DELAY      (PIPE_DLY)
 )i_cfd_pipe_dly(
-            .clk   (clk      ),
-            .rst_p (rst_p    ),
-            .vld_in(1'b1     ),
-            .data_i(input_reg),
-            .data_o(sample_d ),
-            .vld_o (delay_vld)
+            .clk   (clk          ),
+            .rst_p (rst_p        ),
+            .vld_in(sample_in_vld),
+            .data_i(input_reg    ),
+            .data_o(sample_d     ),
+            .vld_o (delay_vld    )
 );
 
 scaler #( .IN_WIDTH    (IN_WIDTH          ), 

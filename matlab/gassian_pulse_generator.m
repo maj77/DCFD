@@ -125,7 +125,7 @@ end
 [amplitude_sweep_arr_threshold2, amp_threshold_idx_arr2] = calc_thresholds(amplitude_sweep_arr_threshold, THRESHOLD, epsilon);
 
 if (amplitude_sweep_arr_threshold2 == amplitude_sweep_arr_threshold)
-    display("[INFO] DUPA");
+    display("[INFO] thresholds form script and function are the same");
 end
 
 

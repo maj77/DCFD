@@ -62,7 +62,7 @@ assign amplitude_8_1408_result = amplitude_8_1408_result_temp[0]; // readmemh mu
 
 reg [11:0] testdata = 12'hFFF0;
 int sample_no       = 0;
-event transaction_ok;
+reg   rand_vld_in;
 
 always @(*) begin : testdata_vld
     if (!rst_n) begin
@@ -70,13 +70,22 @@ always @(*) begin : testdata_vld
     end else begin
         // if (cfd_axi_result_vld==1'b0) begin
         if (sample_no < PULSE_SAMPLES) begin
-            cfd_data_in_vld = 1;
+            // cfd_data_in_vld = 1;
+            cfd_data_in_vld = rand_vld_in;
         end else begin
             cfd_data_in_vld = 0;
         end
     end
 end
 
+// randomize cfd_data_vld_in to check if axi transactions are correctly implemented
+always @(posedge clk) begin : randomize_vld_in
+    if (!rst_n) begin
+        rand_vld_in <= 1'b0;
+    end else begin
+        rand_vld_in <= $urandom_range(0,1);
+    end
+end
 
 always @(posedge clk) begin
     if (cfd_data_in_vld && cfd_data_in_rdy) begin

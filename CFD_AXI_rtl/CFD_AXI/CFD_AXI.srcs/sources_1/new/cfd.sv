@@ -89,12 +89,13 @@ scale_delay #(.IN_WIDTH          (IN_WIDTH          ),
               .PIPE_DLY          (PIPE_DLY_INT      ),
               .SCALE_FACTOR_WIDTH(SCALE_FACTOR_WIDTH)
 )i_scale_and_delay(
-              .clk         (clk            ),
-              .rst_p       (rst_p          ),
-              .sf          (sf             ),
-              .sample_in   (sample_in      ),
-              .sample_0_out(zc_sample_in[0]),
-              .sample_1_out(zc_sample_in[1])
+              .clk          (clk            ),
+              .rst_p        (rst_p          ),
+              .sf           (sf             ),
+              .sample_in    (sample_in      ),
+              .sample_in_vld(axi_data_vld   ),
+              .sample_0_out (zc_sample_in[0]),
+              .sample_1_out (zc_sample_in[1])
 );
 
 zc_interpolator #(.FPGA_CLOCKS_PER_SAMPLE(FPGA_CLOCKS_PER_SAMPLE),

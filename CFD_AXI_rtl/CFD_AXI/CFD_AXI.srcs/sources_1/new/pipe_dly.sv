@@ -31,9 +31,14 @@ always_ff @(posedge clk) begin
     end else begin
         data_d[0] <= data_i;
         vld[0]    <= vld_in;
-        for (int n=1; n<DELAY; n=n+1) begin
-            data_d[n] <= data_d[n-1];
-            vld[n]    <= vld[n-1];
+        if(vld_in==1'b1) begin
+            for (int n=1; n<DELAY; n=n+1) begin
+                data_d[n] <= data_d[n-1];
+                vld[n]    <= vld[n-1];
+            end
+        end else begin
+            data_d <= data_d;
+            vld    <= vld;
         end
     end
 end
